@@ -223,8 +223,34 @@ class DocumentLayoutElement(models.Model):
         default="font-weight:500; border-top:0.5pt solid #ccc;",
         help="CSS style for section subtotal rows.",
     )
+    # Granulare Section-Subtotal-Config (Strang 2). Defaults = bisheriges
+    # Aussehen (Label "Zwischensumme", rechtsbündig) → Status quo bei leer.
+    table_subtotal_label = fields.Char(
+        string="Subtotal Label",
+        default="Zwischensumme",
+        help="Label text for section subtotal rows.",
+    )
+    table_subtotal_align = fields.Selection([
+        ("left", "Left"),
+        ("right", "Right"),
+    ], string="Subtotal Alignment", default="right",
+        help="Horizontal alignment of the section subtotal row.")
+    # Trennlinie der Section-Subtotal-Zeile (Punkt 2). Default True = Status quo
+    # (Linie wie bisher). False entfernt die Linie unabhängig vom Stil-Preset.
+    table_subtotal_show_line = fields.Boolean(
+        string="Subtotal Trennlinie",
+        default=True,
+        help="Trennlinie über der Section-Subtotal-Zeile anzeigen.",
+    )
 
     # Totals labels and style
+    # Trennlinien des Hauptsummenblocks (Punkt 2). Default True = Status quo
+    # (Linien über/unter Zwischensumme/Gesamt). False entfernt alle Linien.
+    totals_show_lines = fields.Boolean(
+        string="Summenblock Trennlinien",
+        default=True,
+        help="Trennlinien im Hauptsummenblock anzeigen.",
+    )
     totals_label_subtotal = fields.Char(
         string="Subtotal Label",
         default="Zwischensumme:",
@@ -601,6 +627,10 @@ class DocumentLayoutElement(models.Model):
             "table_section_style": self.table_section_style or "",
             "table_note_style": self.table_note_style or "",
             "table_subtotal_style": self.table_subtotal_style or "",
+            "table_subtotal_label": self.table_subtotal_label or "",
+            "table_subtotal_align": self.table_subtotal_align or "right",
+            "table_subtotal_show_line": self.table_subtotal_show_line,
+            "totals_show_lines": self.totals_show_lines,
             # Totals (Inline-Table + eigenständiges Totals-Element)
             "totals_label_subtotal": self.totals_label_subtotal or "",
             "totals_label_tax": self.totals_label_tax or "",

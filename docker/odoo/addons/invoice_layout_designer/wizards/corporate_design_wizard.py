@@ -32,7 +32,7 @@ TABLE_COLUMNS = {
     "sale.order": [
         {"field": "name", "label": "Description", "width": "38%", "align": "left"},
         {"field": "product_uom_qty", "label": "Qty", "width": "8%", "align": "right"},
-        {"field": "product_uom.name", "label": "Unit", "width": "8%", "align": "center"},
+        {"field": "product_uom_id.name", "label": "Unit", "width": "8%", "align": "center"},
         {"field": "price_unit", "label": "Unit Price", "width": "14%", "align": "right", "type": "monetary"},
         {"field": "discount", "label": "Disc%", "width": "8%", "align": "right"},
         {"field": "tax_id", "label": "Tax", "width": "10%", "align": "right"},
@@ -49,7 +49,7 @@ TABLE_COLUMNS = {
     "purchase.order": [
         {"field": "name", "label": "Description", "width": "38%", "align": "left"},
         {"field": "product_qty", "label": "Qty", "width": "10%", "align": "right"},
-        {"field": "product_uom.name", "label": "Unit", "width": "8%", "align": "center"},
+        {"field": "product_uom_id.name", "label": "Unit", "width": "8%", "align": "center"},
         {"field": "price_unit", "label": "Unit Price", "width": "14%", "align": "right", "type": "monetary"},
         {"field": "taxes_id", "label": "Tax", "width": "12%", "align": "right"},
         {"field": "price_subtotal", "label": "Subtotal", "width": "18%", "align": "right", "type": "monetary"},

@@ -349,6 +349,15 @@ class DocumentLayoutTemplate(models.Model):
     # Header/Footer heights
     header_height = fields.Float(string="Header Height (mm)", default=35.0)
     footer_height = fields.Float(string="Footer Height (mm)", default=25.0)
+    # Header auf JEDER Seite wiederholen (wie der Footer). Default False =
+    # Status quo: Header nur auf Seite 1. Opt-in, damit bestehende Templates
+    # ohne Nutzeraktion unverändert bleiben.
+    header_repeat_each_page = fields.Boolean(
+        string="Header auf jeder Seite wiederholen",
+        default=False,
+        help="Wenn aktiv, erscheint die Header-Zone (Logo/Firmenkopf) auf jeder "
+             "Seite wie der Footer. Standard: nur auf Seite 1.",
+    )
 
     # Odoo-Standard-Belegbarcode: optionaler Code128 der Belegnummer oben rechts,
     # analog zu Odoos Standard-Reports (z.B. Lieferschein-Operationen). Per
@@ -446,6 +455,22 @@ class DocumentLayoutTemplate(models.Model):
     ], string="Background Scaling", default="contain",
         help="How background images scale into their area. "
              "Contain = no cropping and no distortion (recommended).")
+    bg_layout_mode = fields.Selection([
+        ("areas", "Separate areas (header / footer / page)"),
+        ("full", "Whole sheet (full bleed)"),
+    ], string="Background Mode", default="areas",
+        help="Separate areas: each of the header / footer / page background "
+             "images stays inside its own zone (default, status quo). "
+             "Whole sheet: a SINGLE image (the Page Background) fills the entire "
+             "physical sheet edge-to-edge, ignoring all margins, behind the "
+             "content. Header/Footer backgrounds are ignored in this mode.")
+    band_opacity = fields.Integer(
+        string="Band Opacity (%)", default=100,
+        help="Opacity of opaque bands (section rows, table header / column "
+             "fills, totals box) when a full-bleed background image is active. "
+             "100 = fully opaque (default, status quo). Lower values let the "
+             "background image show through the bands (text stays fully "
+             "readable). Only takes effect with Background Mode = whole sheet.")
 
     # Computed
     element_count = fields.Integer(
@@ -1264,7 +1289,7 @@ class DocumentLayoutTemplate(models.Model):
             {"field": "sequence", "label": "Pos.", "width": "5%", "align": "center"},
             {"field": "name", "label": "Bezeichnung", "width": "38%", "align": "left"},
             {"field": "product_uom_qty", "label": "Menge", "width": "8%", "align": "right"},
-            {"field": "product_uom.name", "label": "Einheit", "width": "9%", "align": "center"},
+            {"field": "product_uom_id.name", "label": "Einheit", "width": "9%", "align": "center"},
             {"field": "price_unit", "label": "Einzelpreis", "width": "13%", "align": "right", "type": "monetary"},
             {"field": "discount", "label": "Rabatt", "width": "7%", "align": "right"},
             {"field": "tax_id", "label": "USt.", "width": "8%", "align": "right"},

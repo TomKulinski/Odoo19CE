@@ -221,6 +221,25 @@ class IrActionsReport(models.Model):
 
         if model_name == "sale.order":
             template = _find_sale_template(True) or _find_sale_template(False)
+            if not template:
+                # Last-Resort (Punkt 5): Wenn KEIN Template als Standard markiert
+                # ist, soll die Sale Order trotzdem das Builder-Layout nehmen statt
+                # still auf den Odoo-Standard-Report zurückzufallen. Bevorzugt das
+                # state-passende doc_type, dann irgendein aktives sale.order/AB-
+                # Template. is_default wird hier bewusst ignoriert.
+                preferred = ("auftragsbestaetigung", "sale.order") if sale_state_group == "confirmed" else ("sale.order", "auftragsbestaetigung")
+                template = Template.search(
+                    [("doc_type", "in", list(preferred)), ("active", "=", True)],
+                    limit=1,
+                    order="company_id, id",
+                )
+                if template:
+                    _logger.warning(
+                        "ILD: Kein Standard-Template für sale.order (%s) — Last-"
+                        "Resort nutzt '%s' (id=%s). Markiere ein Template als "
+                        "Standard, um die Auswahl zu fixieren.",
+                        sale_state_group, template.name, template.id,
+                    )
         else:
             template = _search_default(search_doc_type)
             if not template:
@@ -336,6 +355,11 @@ class IrActionsReport(models.Model):
                 margin_bottom = template.margin_bottom or 0
                 margin_left = template.margin_left or 0
                 margin_right = template.margin_right or 0
+                # Header-Wiederholung (Punkt 4): oberen Rand um header_height
+                # erhöhen, damit das fixe Header-Band auf JEDER Seite Platz hat
+                # und der Body nie unter den Header läuft (analog footer_reserve).
+                if getattr(template, "header_repeat_each_page", False):
+                    margin_top = margin_top + float(template.header_height or 0)
                 paper_w = template.paper_width or 210
                 paper_h = template.paper_height or 297
                 # Footer-Band unten reservieren (deckungsgleich mit dem @page in
@@ -580,7 +604,16 @@ def transpile_template(template, records=None, engine="wkhtmltopdf"):
     # @page margin-bottom). Die .ild-page (Body-Box) endet deshalb oberhalb
     # des Footer-Bands, sonst würde eine lange Tabelle unter den Footer laufen
     # und mit ihm verschmelzen.
-    page_min_height = max(0, ph - mt - mb - fh - page_safety_mm)
+    # Header-Wiederholung (Punkt 4): Bei aktivem Header-Band (nur WeasyPrint)
+    # erhöht _render_with_weasyprint die @page-margin-top um header_height. Die
+    # Inhaltsfläche schrumpft entsprechend — alle top-margin-abhängigen Maße
+    # (Body-Box-Höhe, Footer-Band-Position) müssen denselben Reserve abziehen,
+    # sonst entsteht eine Geisterseite bzw. das Footer-Band sitzt falsch.
+    header_reserve = float(template.header_height or 0) if (
+        getattr(template, "header_repeat_each_page", False) and engine == "weasyprint"
+    ) else 0.0
+    mt_eff = mt + header_reserve
+    page_min_height = max(0, ph - mt_eff - mb - fh - page_safety_mm)
 
     # WeasyPrint: Seitenzahl in die @bottom-right-Margin-Box. counter(page) in
     # einem position:fixed-Band liefert auf JEDER Seite die Gesamtseitenzahl
@@ -600,6 +633,14 @@ def transpile_template(template, records=None, engine="wkhtmltopdf"):
 
     html_parts = []
 
+    # Band-Deckkraft (deckende Bänder halbtransparent über Full-Bleed). None =
+    # deckend (Status quo). Hier für das statische Zebra-Band genutzt; Sektions-,
+    # Kopf-/Spalten- und Summenblock-Bänder werden in _render_table/-totals
+    # behandelt.
+    _band_a = _band_alpha(template)
+    zebra_bg = "#fafafa" if _band_a is None else (
+        "rgba(250,250,250,%g)" % _band_a)
+
     # CSS — fully self-contained, no dependency on Odoo stylesheets
     html_parts.append(f"""
     <style>
@@ -608,8 +649,18 @@ def transpile_template(template, records=None, engine="wkhtmltopdf"):
             /* margin-bottom reserviert zusätzlich das Footer-Band ({fh}mm),
                damit fließender Body-Inhalt (lange Tabellen) nicht in den
                Footer hineinläuft. Footer selbst sitzt per position:fixed in
-               diesem reservierten Band; die Seitenzahl kommt aus der Margin-Box. */
-            margin: {mt}mm {mr}mm {mb + fh}mm {ml}mm;
+               diesem reservierten Band; die Seitenzahl kommt aus der Margin-Box.
+               margin-top = mt_eff: bei aktivem Header-Repeat (WeasyPrint) ist
+               das mt + header_height. WICHTIG: Dieses @page steht im Body-Style
+               und kommt im Dokument NACH dem @page-Block des Renderers
+               (_render_with_weasyprint) -> im CSS-Cascade gewinnt dieser hier.
+               Bei nur mt statt mt_eff wuerde die Header-Reservierung des
+               Renderers ueberschrieben, waehrend Footer-Band und
+               page_min_height weiter mit mt_eff rechnen -> Footer rutscht um
+               header_height in den Content und ueberlappt die Tabelle.
+               KEINE spitzen Klammern in diesem Kommentar: der CSS-Text landet
+               in einem Style-Element, das per lxml als XML geparst wird. */
+            margin: {mt_eff}mm {mr}mm {mb + fh}mm {ml}mm;
             {page_margin_box}
         }}
         {running_footer_css}
@@ -690,7 +741,7 @@ def transpile_template(template, records=None, engine="wkhtmltopdf"):
             font-size: 9pt; font-weight: 400; color: #000;
         }}
         .ild-table tbody tr {{ page-break-inside: avoid; }}
-        .ild-table .ild-zebra:nth-child(even) {{ background-color: #fafafa; }}
+        .ild-table .ild-zebra:nth-child(even) {{ background-color: {zebra_bg}; }}
         /* Bold-Stil: kräftige Kopf-/Total-Linien wie Odoos "Bold"-Layout. */
         .ild-table-bold th {{ border-bottom: 1.8pt solid #111; text-transform: uppercase; letter-spacing: 0.3pt; }}
 
@@ -765,42 +816,64 @@ def transpile_template(template, records=None, engine="wkhtmltopdf"):
         elif legacy_uri and bg_mode == "header_only":
             header_uri = legacy_uri
 
-    # Verankerungspunkt eines position:fixed-Bands ist je Engine anders
-    # (identisch zum Footer-Band weiter unten):
-    #   * WeasyPrint: relativ zur Seiten-INHALTSFLÄCHE (innerhalb @page-Margins)
-    #     -> Ursprung links/oben = 0/0.
-    #   * wkhtmltopdf (altes WebKit): relativ zur SEITENBOX (physische Kante)
-    #     -> Ursprung über margin-left/top bzw. margin-bottom.
-    page_band_h = max(0, ph - mt - mb)           # gesamte druckbare Höhe
-    footer_band_top = max(0, ph - mt - mb - fh)  # Oberkante des Footer-Streifens
+    # BG-Bänder MÜSSEN deckungsgleich mit den echten Content-Bändern liegen
+    # (ild-header-band / ild-footer-band), sonst landet z.B. das Header-BG im
+    # Body. Geometrie daher aus mt_eff (= mt + Header-Reserve bei aktivem
+    # Header-Repeat, identisch zu transpile-@page und Footer-Band):
+    #   * Inhaltsbox-Höhe = ph - mt_eff - mb - fh.
+    #   * Header-Band: bei aktivem Repeat top:-hh (im reservierten oberen
+    #     @page-Margin, wie ild-header-band); sonst inline bei top:0.
+    #   * Footer-Band: top = Inhaltsbox-Höhe (direkt unter dem Body, wie
+    #     ild-footer-band).
+    content_box_h = max(0, ph - mt_eff - mb - fh)   # Höhe der Body-Inhaltsfläche
+    # header_reserve > 0 <=> aktives Header-Band (Repeat + WeasyPrint),
+    # identisch zur späteren header_band_active-Berechnung; hier schon nötig.
+    header_top = -hh if header_reserve > 0 else 0.0  # spiegelt ild-header-band
     if engine == "weasyprint":
+        # Ursprung = Inhaltsbox-Ecke (innerhalb @page-Margins).
         page_pos = "left:0; top:0;"
-        header_pos = "left:0; top:0;"
-        footer_pos = f"left:0; top:{footer_band_top}mm;"
+        header_pos = f"left:0; top:{header_top}mm;"
+        footer_pos = f"left:0; top:{content_box_h}mm;"
     else:
+        # wkhtmltopdf: position:fixed relativ zur physischen Seitenbox.
         page_pos = f"left:{ml}mm; top:{mt}mm;"
         header_pos = f"left:{ml}mm; top:{mt}mm;"
         footer_pos = f"left:{ml}mm; bottom:{mb}mm;"
 
-    def _bg_band(uri, pos_css, height_mm):
+    def _bg_band(uri, pos_css, width_mm, height_mm):
         # Eigene Klasse statt .ild-element, damit die generische
         # ".ild-element img { max-width/height }"-Regel hier nicht greift.
         return (
             f'<div class="ild-bg-band" style="position:fixed; {pos_css} '
-            f'width:{content_width}mm; height:{height_mm}mm; z-index:0; '
+            f'width:{width_mm}mm; height:{height_mm}mm; z-index:0; '
             f'overflow:hidden; pointer-events:none; margin:0; padding:0;">'
             f'<img src="{uri}" style="width:100%; height:100%; '
             f'object-fit:{object_fit}; display:block;"/>'
             f'</div>'
         )
 
-    # Reihenfolge: Gesamtseite zuunterst, dann Header/Footer darüber, alle VOR Content.
-    if page_uri and page_band_h > 0:
-        html_parts.append(_bg_band(page_uri, page_pos, page_band_h))
-    if header_uri and hh > 0:
-        html_parts.append(_bg_band(header_uri, header_pos, hh))
-    if footer_uri and fh > 0:
-        html_parts.append(_bg_band(footer_uri, footer_pos, fh))
+    # Modus "ganze Seite" (Full Bleed): EIN Bild (bg_page_image bzw. Legacy)
+    # füllt das KOMPLETTE Blatt von Papierkante zu Papierkante, ungeachtet aller
+    # Margins. WeasyPrint: Layer relativ zur Inhaltsbox -> per negativem Offset
+    # (-ml / -mt_eff) bis zur Papierkante ausdehnen, Größe = volles Blatt
+    # (pw x ph). wkhtml: Seitenbox-Ursprung = Papierecke -> left/top 0.
+    # Header/Footer-Einzel-BGs treten zurück. Content-Margins bleiben unberührt.
+    bg_full = getattr(template, "bg_layout_mode", "areas") == "full"
+    if bg_full:
+        if page_uri:
+            if engine == "weasyprint":
+                full_pos = f"left:-{ml}mm; top:-{mt_eff}mm;"
+            else:
+                full_pos = "left:0; top:0;"
+            html_parts.append(_bg_band(page_uri, full_pos, pw, ph))
+    else:
+        # Reihenfolge: Gesamtseite zuunterst, dann Header/Footer darüber, alle VOR Content.
+        if page_uri and content_box_h > 0:
+            html_parts.append(_bg_band(page_uri, page_pos, content_width, content_box_h))
+        if header_uri and hh > 0:
+            html_parts.append(_bg_band(header_uri, header_pos, content_width, hh))
+        if footer_uri and fh > 0:
+            html_parts.append(_bg_band(footer_uri, footer_pos, content_width, fh))
 
     html_parts.append('<div class="ild-page">')
 
@@ -811,10 +884,23 @@ def transpile_template(template, records=None, engine="wkhtmltopdf"):
     # to elem.pos_y so top: is always relative to the content-area top.
     body_height = max(0, ph - mt - mb - float(template.header_height or 0) - float(template.footer_height or 0))
     header_offset = 0.0
-    body_offset = float(template.header_height or 0)
+    # Header-Wiederholung (Punkt 4, opt-in): Bei header_repeat_each_page liegt der
+    # Header in einem position:fixed-Band (wie der Footer) und wird über die
+    # @page-Margin auf JEDER Seite reserviert. body_offset = 0, weil der Body dann
+    # NICHT mehr inline unter einem einmaligen Header startet. Default (aus) =
+    # Status quo: Header inline, nur Seite 1, body_offset = header_height.
+    header_repeat = bool(getattr(template, "header_repeat_each_page", False))
+    hh_band = float(template.header_height or 0)
+    # Das fixe Header-Band braucht eine zuverlässige Top-Reservierung pro Seite
+    # (über die @page-Margin). Das ist sauber nur in WeasyPrint umsetzbar; in
+    # wkhtmltopdf gibt es kein verlässliches Top-Reserve, deshalb bleibt der
+    # Header dort inline (Status quo, Seite 1). header_band_active steuert beides.
+    header_band_active = header_repeat and engine == "weasyprint"
+    body_offset = 0.0 if header_band_active else hh_band
 
-    for elem in header_elements:
-        html_parts.append(_render_element(elem, template, y_offset=header_offset))
+    if not header_band_active:
+        for elem in header_elements:
+            html_parts.append(_render_element(elem, template, y_offset=header_offset))
 
     # --- Optionaler Odoo-Standard-Belegbarcode (Code128 der Belegnummer) ---
     # Aktivierbar pro Template (show_odoo_barcode). Rechtsbündig in der freien
@@ -848,18 +934,37 @@ def transpile_template(template, records=None, engine="wkhtmltopdf"):
     )
 
     # Strang 1: Elemente, die an den Summenblock fixiert sind (fixed_to="totals"),
-    # fließen NICHT eigenständig — sie werden als Overlay GEMEINSAM mit dem
-    # Totals-Element gerendert, sodass ihr relativer Offset erhalten bleibt und
-    # sie mit dem Totals-Block über Seiten mitwandern. Wirksam nur, wenn das
-    # Totals-Element im Fluss liegt (anchor_mode="after_table"); ein fest
-    # platziertes Totals braucht keine Sonderbehandlung (Box liegt dann ohnehin
-    # absolut darüber). Eine Ebene: fixierte Elemente sind nie selbst Ziel.
+    # fließen NICHT eigenständig — sie rahmen den Summenblock und wandern mit ihm
+    # über Seitenumbrüche. Zwei Ziel-Varianten:
+    #   (a) eigenständiges Totals-Element im Fluss (anchor_mode="after_table"):
+    #       Box + Totals werden als eine Anker-Fluss-Gruppe gerendert.
+    #   (b) Inline-Totals (table_show_totals=True, KEIN separates Totals-Element,
+    #       der Default in allen Standard-Templates): Box wird als Overlay in den
+    #       Totals-Block der Tabelle injiziert (_build_totals_html overlays_html).
+    # Ein fest platziertes Totals braucht nichts (Box liegt ohnehin absolut
+    # darüber). Fixierte Elemente sind nie selbst Ziel.
+    pinned_candidates = body_elements.filtered(
+        lambda e: getattr(e, "fixed_to", "none") == "totals"
+        and e.element_type != "totals"
+    )
     totals_elem_rs = body_elements.filtered(lambda e: e.element_type == "totals")[:1]
     totals_flows = bool(totals_elem_rs) and totals_elem_rs.anchor_mode == "after_table"
+    doc_model = field_registry.doc_type_to_model(template.doc_type) if template else "account.move"
+    inline_totals = (
+        bool(table_elements)
+        and bool(table_elements[0].table_show_totals)
+        and not totals_elem_rs
+        and doc_model in ("account.move", "sale.order", "purchase.order")
+    )
+    totals_overlay_html = ""
     if totals_flows:
-        pinned_to_totals = body_elements.filtered(
-            lambda e: getattr(e, "fixed_to", "none") == "totals"
-            and e.element_type != "totals"
+        # Variante (a): über die bestehende Anker-Gruppen-Logik.
+        pinned_to_totals = pinned_candidates
+    elif inline_totals and pinned_candidates:
+        # Variante (b): Overlays vorab rendern, gleich in die Tabelle injizieren.
+        pinned_to_totals = pinned_candidates
+        totals_overlay_html = "".join(
+            _render_element(b, template, pin_overlay=True) for b in pinned_candidates
         )
     else:
         pinned_to_totals = body_elements.browse()
@@ -899,6 +1004,7 @@ def transpile_template(template, records=None, engine="wkhtmltopdf"):
             _render_element(
                 table_elem, template, flow=True,
                 flow_dx=float(table_elem.pos_x), flow_gap=0.0,
+                totals_overlays=totals_overlay_html,
             )
         )
         # Anker-Elemente fließen unter die Tabelle. Explizit verbundene
@@ -989,7 +1095,7 @@ def transpile_template(template, records=None, engine="wkhtmltopdf"):
         # - wkhtmltopdf (altes WebKit): relativ zur SEITENBOX. Hier zählt
         #   bottom/left ab der physischen Seitenkante, deshalb bottom = mb und
         #   left = ml.
-        content_height = max(0, ph - mt - mb - fh)
+        content_height = max(0, ph - mt_eff - mb - fh)
         if engine == "weasyprint":
             band_pos = f"left: 0; top: {content_height}mm;"
         else:
@@ -1032,11 +1138,32 @@ def transpile_template(template, records=None, engine="wkhtmltopdf"):
     else:
         _logger.info("ILD footer: keine Footer-Elemente vorhanden.")
 
+    # --- Header als fixes Band (Punkt 4, WeasyPrint, opt-in) ---
+    # Spiegelt das Footer-Band: position:fixed, Geschwister von .ild-page, sodass
+    # WeasyPrint es auf JEDER Seite wiederholt. Der Body startet header_height
+    # tiefer (margin-top um header_height erhöht, siehe _render_with_weasyprint),
+    # deshalb sitzt das Band im reservierten oberen Rand: top = -header_height
+    # relativ zur Inhalts-Oberkante. Nur wenn aktiv UND Header-Elemente da sind.
+    if header_band_active and header_elements:
+        _logger.info(
+            "ILD header: %d Header-Element(e) im fixen Band (Höhe %smm).",
+            len(header_elements), hh_band,
+        )
+        html_parts.append(
+            f'<div class="ild-header-band" style="position: fixed; '
+            f'left: 0; top: -{hh_band}mm; '
+            f'width: {content_width}mm; height: {hh_band}mm;">'
+        )
+        for elem in header_elements:
+            html_parts.append(_render_element(elem, template, y_offset=0.0))
+        html_parts.append("</div>")
+
     return "\n".join(html_parts)
 
 
 def _render_element(elem, template, y_offset=0.0, flow=False,
-                    flow_dx=0.0, flow_gap=0.0, content_override=None):
+                    flow_dx=0.0, flow_gap=0.0, content_override=None,
+                    pin_overlay=False, totals_overlays=""):
     """Render a single element to HTML, optionally wrapped in a t-if condition.
 
     flow=True rendert das Element NICHT auf absoluten Koordinaten, sondern
@@ -1057,7 +1184,23 @@ def _render_element(elem, template, y_offset=0.0, flow=False,
     else:
         height_css = f"height: {elem.height}mm"
 
-    if flow:
+    if pin_overlay:
+        # Strang 1 (Inline-Totals-Fix): Box rahmt den Summenblock. Sie liegt als
+        # position:absolute-Overlay in einem relativen Wrapper um die Inline-
+        # Totals (siehe _build_totals_html). top:0/right:0 hängt sie an die obere
+        # rechte Kante des Totals-Blocks (dort sitzen die Summen). Sie wandert
+        # damit mit dem Block über Seitenumbrüche und liegt nie in der Tabelle.
+        style_parts = [
+            "position: absolute",
+            "top: 0",
+            "right: 0",
+            f"width: {elem.width}mm",
+            height_css,
+            "z-index: 5",
+            "break-inside: avoid",
+            "page-break-inside: avoid",
+        ]
+    elif flow:
         # In-Flow: keine left/top-Koordinaten. `position: static` hebt das
         # absolute Verhalten der .ild-element-Klasse auf, sodass das Element
         # direkt unter dem vorherigen Flussinhalt (= Tabelle) sitzt.
@@ -1108,6 +1251,10 @@ def _render_element(elem, template, y_offset=0.0, flow=False,
     renderer = renderers.get(elem.element_type, _render_text)
     if content_override is not None and elem.element_type == "text":
         html = _render_text(elem, style_str, template, content_override=content_override)
+    elif elem.element_type == "table" and totals_overlays:
+        # Inline-Totals-Fix: an den Summenblock fixierte Overlay-Boxen werden in
+        # den Totals-Block der Tabelle injiziert (rahmen ihn, fließen mit ihm).
+        html = _render_table(elem, style_str, template, totals_overlays=totals_overlays)
     else:
         html = renderer(elem, style_str, template)
 
@@ -1406,7 +1553,55 @@ def _render_image(elem, style_str, template=None):
     return f'<div class="ild-element" style="{style_str}"></div>'
 
 
-def _ild_col_css(col):
+_BAND_BG_RE = re.compile(r'background(?:-color)?\s*:\s*(#[0-9a-fA-F]{3,6})')
+
+
+def _hexcolor_to_rgb(hexstr):
+    h = hexstr.lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    if len(h) != 6:
+        return None
+    try:
+        return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+    except ValueError:
+        return None
+
+
+def _band_alpha(template):
+    """Alpha (0..1) für deckende Bänder ODER None (= deckend, Status quo).
+
+    Greift NUR bei aktivem Full-Bleed-Hintergrund (bg_layout_mode=full) und
+    band_opacity < 100. Sonst None → Bänder bleiben deckend (bei weißem
+    Hintergrund will man keine durchscheinenden Bänder)."""
+    if template is None:
+        return None
+    if getattr(template, "bg_layout_mode", "areas") != "full":
+        return None
+    op = getattr(template, "band_opacity", 100)
+    if op is None or op >= 100:
+        return None
+    return max(0.0, min(1.0, op / 100.0))
+
+
+def _band_alpha_css(css_fragment, alpha):
+    """Wandelt opake Hex-Hintergründe (background[-color]:#xxx) eines CSS-
+    Fragments in rgba(...) mit gegebenem Alpha. alpha None/>=1 → Fragment
+    unverändert (Status quo). Nur die Hintergrundfarbe bekommt Alpha; Text
+    (eigene color/spans) bleibt voll deckend und lesbar."""
+    if not css_fragment or alpha is None or alpha >= 1.0:
+        return css_fragment
+
+    def _sub(m):
+        rgb = _hexcolor_to_rgb(m.group(1))
+        if not rgb:
+            return m.group(0)
+        return f"background-color:rgba({rgb[0]},{rgb[1]},{rgb[2]},{alpha:g})"
+
+    return _BAND_BG_RE.sub(_sub, css_fragment)
+
+
+def _ild_col_css(col, band_alpha=None):
     """Per-column visual overrides (Punkt 1 — Spalten granular).
 
     All keys are optional: when absent the function returns "" → no extra CSS,
@@ -1427,10 +1622,12 @@ def _ild_col_css(col):
     bgc = col.get("bg")
     if bgc:
         css += f"background-color:{bgc};"
-    return css
+    # Bei aktivem Full-Bleed + reduzierter Band-Deckkraft den Spalten-/Kopf-
+    # Hintergrund halbtransparent rendern, damit das Bild durchscheint.
+    return _band_alpha_css(css, band_alpha)
 
 
-def _render_table(elem, style_str, template=None):
+def _render_table(elem, style_str, template=None, totals_overlays=""):
     """
     Render the line items table with:
     - Page break chunking (configurable rows per page)
@@ -1439,6 +1636,11 @@ def _render_table(elem, style_str, template=None):
     - Optional items handling (separate section / inline / hidden)
     - Section & note line support (account.move)
     """
+    # Band-Deckkraft (Punkt: deckende Bänder halbtransparent über Full-Bleed).
+    # None = deckend (Status quo). Wird auf Sektions-, Kopf-/Spalten- und
+    # Summenblock-Hintergründe angewendet.
+    band_alpha = _band_alpha(template)
+
     columns = elem.get_table_columns()
     # Strip columns with no field path (they would render empty/placeholder data)
     # and columns the user hid (col.hidden, Punkt 1). Filtering here keeps n_cols
@@ -1505,9 +1707,11 @@ def _render_table(elem, style_str, template=None):
     # nothing → class controls everything = status quo). When > 0 we override
     # the vertical padding additively (2mm base + spacing) while leaving the
     # horizontal padding to the class. Works in WeasyPrint and wkhtmltopdf.
+    # Negative Werte ziehen Zeilen enger zusammen (Basis-Padding 2.0mm runter).
+    # Floor 0.3mm verhindert Überlappen/0-Höhe; alles < 0 greift erst ab hier.
     row_pad = ""
-    if elem.table_row_spacing and elem.table_row_spacing > 0:
-        _vp = 2.0 + elem.table_row_spacing
+    if elem.table_row_spacing:
+        _vp = max(0.3, 2.0 + elem.table_row_spacing)
         row_pad = f"padding-top:{_vp:g}mm; padding-bottom:{_vp:g}mm; "
     n_cols = len(columns)
     rows_per_page = elem.table_rows_per_page or 25
@@ -1524,7 +1728,7 @@ def _render_table(elem, style_str, template=None):
             w = f'width: {col.get("width", "auto")};' if col.get("width") else ""
             a = f'text-align: {col.get("align", "left")};'
             field = col.get("field", "")
-            ccss = _ild_col_css(col)
+            ccss = _ild_col_css(col, band_alpha)
             th = f'<th style="{w} {a}{ccss}">{col.get("label", "")}</th>'
             if field == "discount":
                 th = f'<t t-if="ild_display_discount">{th}</t>'
@@ -1538,7 +1742,7 @@ def _render_table(elem, style_str, template=None):
     def _td(col, line_var="line"):
         a = f'text-align: {col.get("align", "left")};'
         field = col.get("field", "")
-        ccss = _ild_col_css(col)
+        ccss = _ild_col_css(col, band_alpha)
         if field == "sequence":
             return f'<td style="{row_pad}{td_border} {a}{ccss}"><t t-esc="{line_var}_index + 1"/></td>'
         elif field in ("quantity", "product_uom_qty", "product_qty", "qty_done", "quantity_done"):
@@ -1655,6 +1859,8 @@ def _render_table(elem, style_str, template=None):
     show_notes = getattr(elem, "table_show_notes", True)
     show_subtotals = getattr(elem, "table_show_subtotals", False)
     section_css = getattr(elem, "table_section_style", "") or "font-weight:600; font-size:9pt; background:#f5f5f5;"
+    # Sektions-Band über Full-Bleed halbtransparent (sonst grauer Streifen).
+    section_css = _band_alpha_css(section_css, band_alpha)
     note_css = getattr(elem, "table_note_style", "") or "font-style:italic; color:#666;"
     subtotal_css = getattr(elem, "table_subtotal_style", "") or "font-weight:500; border-top:0.5pt solid #ccc;"
 
@@ -1662,10 +1868,19 @@ def _render_table(elem, style_str, template=None):
     # Sektion, rechtsbündig im Stil table_subtotal_style. sum(ild_sec_amts) ist
     # der aktuelle Sektions-Stand. Wird an Sektionsgrenzen (vorherige Sektion)
     # und am Tabellenende (letzte Sektion) emittiert.
+    # Granulare Config: Label + Ausrichtung (Stil via subtotal_css). Defaults
+    # = "Zwischensumme" rechtsbündig → Status quo.
+    sub_label = getattr(elem, "table_subtotal_label", "") or "Zwischensumme"
+    sub_align = getattr(elem, "table_subtotal_align", "") or "right"
+    # Trennlinie-Toggle (Punkt 2): Bei aus die Linien hart entfernen, unabhängig
+    # vom gewählten Stil-Preset (das selbst border-top setzen kann).
+    sub_line_css = ""
+    if not getattr(elem, "table_subtotal_show_line", True):
+        sub_line_css = " border-top:none !important; border-bottom:none !important;"
     subtotal_tr = (
         f'<tr class="ild-subtotal-row"><td colspan="{n_cols}" '
-        f'style="{subtotal_css} text-align:right; padding:1.5mm 1.5mm;">'
-        f'<span style="margin-right:4mm;">Zwischensumme</span>'
+        f'style="{subtotal_css} text-align:{sub_align}; padding:1.5mm 1.5mm;{sub_line_css}">'
+        f'<span style="margin-right:4mm;">{sub_label}</span>'
         f'<span t-out="sum(ild_sec_amts)" '
         f'''t-options='{{"widget": "monetary", "display_currency": doc.currency_id}}'/>'''
         f'</td></tr>'
@@ -1721,7 +1936,7 @@ def _render_table(elem, style_str, template=None):
         for col in columns:
             a = f'text-align: {col.get("align", "left")};'
             field = col.get("field", "")
-            ccss = _ild_col_css(col)
+            ccss = _ild_col_css(col, band_alpha)
             if field in ("quantity", "product_uom_qty", "product_qty"):
                 if show_orig_qty:
                     # Show original qty from the order line name or a computed field
@@ -1788,7 +2003,7 @@ def _render_table(elem, style_str, template=None):
         for col in columns:
             a = f'text-align: {col.get("align", "left")};'
             field = col.get("field", "")
-            ccss = _ild_col_css(col)
+            ccss = _ild_col_css(col, band_alpha)
             if field in ("quantity", "product_uom_qty", "product_qty"):
                 if show_orig_qty:
                     # For optional items, try to show a meaningful quantity
@@ -1828,6 +2043,8 @@ def _render_table(elem, style_str, template=None):
             offset_x=getattr(elem, "totals_offset_x", 0.0),
             offset_y=getattr(elem, "totals_offset_y", 0.0),
             row_spacing=getattr(elem, "totals_row_spacing", 0.0),
+            overlays_html=totals_overlays,
+            band_alpha=band_alpha,
         )
     else:
         _logger.info(
@@ -1880,7 +2097,7 @@ TOTALS_STYLE_PRESETS = {
 }
 
 
-def _build_totals_html(elem, margin_top="0", offset_x=0.0, offset_y=0.0, row_spacing=0.0):
+def _build_totals_html(elem, margin_top="0", offset_x=0.0, offset_y=0.0, row_spacing=0.0, overlays_html="", band_alpha=None):
     """Erzeugt den Totals-Block (Zwischensumme/Steuer/Gesamt) als HTML.
 
     Eine einzige Markup-Quelle, genutzt vom Inline-Table-Totals und vom
@@ -1898,11 +2115,35 @@ def _build_totals_html(elem, margin_top="0", offset_x=0.0, offset_y=0.0, row_spa
     lbl_tot = getattr(elem, "totals_label_total", "") or "Gesamt:"
     tot_style = getattr(elem, "totals_style", "default") or "default"
     s = TOTALS_STYLE_PRESETS.get(tot_style, TOTALS_STYLE_PRESETS["default"])
+    # Trennlinien-Toggle: Bei aus die Linien HART entfernen. Die Linien kommen
+    # NICHT nur aus dem Preset (s['sub_border']/s['tot_border'] sind im Default
+    # leer), sondern vor allem aus dem statischen Stylesheet
+    # (.ild-table-totals tr.subtotal-line td / tr.total-line td → border:...).
+    # Deshalb reicht Preset-Leeren nicht — wir setzen border:none !important
+    # inline auf JEDE Zelle (überschreibt das Stylesheet). Analog zum
+    # funktionierenden Subtotal-Toggle.
+    nl = ""
+    if not getattr(elem, "totals_show_lines", True):
+        s = dict(s)
+        s["tot_border"] = ""
+        s["sub_border"] = ""
+        nl = " border:none !important;"
+
+    # Summenblock-Box (Preset "boxed": background:#fafafa) über Full-Bleed
+    # halbtransparent rendern. s ggf. kopieren, damit das geteilte Preset-Dict
+    # nicht mutiert wird.
+    if band_alpha is not None and s.get("wrap"):
+        s = dict(s)
+        s["wrap"] = _band_alpha_css(s["wrap"], band_alpha)
 
     # Versatz des gesamten Blocks (nur wenn ungleich 0 → sonst kein CSS = Status quo)
     pos_css = ""
     if (offset_x or 0) or (offset_y or 0):
         pos_css = f"position: relative; left: {offset_x or 0:g}mm; top: {offset_y or 0:g}mm;"
+    elif overlays_html:
+        # Fixierte Overlay-Boxen (fixed_to=totals) brauchen einen relativen
+        # Bezugsrahmen, um den Summenblock zu rahmen. Kein Offset → kein left/top.
+        pos_css = "position: relative;"
 
     # Zeilenabstand: additiv auf das vertikale Zell-Padding. Basis 1.4mm (Sub/Tax)
     # bzw. 1.8mm (Total) bleibt erhalten, wenn row_spacing == 0.
@@ -1912,22 +2153,23 @@ def _build_totals_html(elem, margin_top="0", offset_x=0.0, offset_y=0.0, row_spa
 
     return f"""
         <div class="ild-table-totals" style="margin-top: {margin_top}; {pos_css} {s['wrap']}">
+            {overlays_html}
             <table style="margin-left: auto;">
                 <tr class="subtotal-line" style="{s['sub_border']}">
-                    <td style="padding: {vp:g}mm 4mm; {s['lbl']}">{lbl_sub}</td>
-                    <td style="padding: {vp:g}mm 4mm; text-align: right; {s['val']} {s['sub_border']}">
+                    <td style="padding: {vp:g}mm 4mm; {s['lbl']}{nl}">{lbl_sub}</td>
+                    <td style="padding: {vp:g}mm 4mm; text-align: right; {s['val']} {s['sub_border']}{nl}">
                         <span t-out="doc.amount_untaxed" t-options='{{"widget": "monetary", "display_currency": doc.currency_id}}'/>
                     </td>
                 </tr>
                 <tr>
-                    <td style="padding: {vp:g}mm 4mm; {s['lbl']}">{lbl_tax}</td>
-                    <td style="padding: {vp:g}mm 4mm; text-align: right; {s['val']}">
+                    <td style="padding: {vp:g}mm 4mm; {s['lbl']}{nl}">{lbl_tax}</td>
+                    <td style="padding: {vp:g}mm 4mm; text-align: right; {s['val']}{nl}">
                         <span t-out="doc.amount_tax" t-options='{{"widget": "monetary", "display_currency": doc.currency_id}}'/>
                     </td>
                 </tr>
                 <tr class="total-line" style="{s['tot_border']}">
-                    <td style="padding: {vpt:g}mm 4mm; {s['tot_lbl']} {s['tot_border']}">{lbl_tot}</td>
-                    <td style="padding: {vpt:g}mm 4mm; text-align: right; {s['tot_val']} {s['tot_border']}">
+                    <td style="padding: {vpt:g}mm 4mm; {s['tot_lbl']} {s['tot_border']}{nl}">{lbl_tot}</td>
+                    <td style="padding: {vpt:g}mm 4mm; text-align: right; {s['tot_val']} {s['tot_border']}{nl}">
                         <span t-out="doc.amount_total" t-options='{{"widget": "monetary", "display_currency": doc.currency_id}}'/>
                     </td>
                 </tr>
@@ -1958,6 +2200,7 @@ def _render_totals(elem, style_str, template=None):
     inner = _build_totals_html(
         elem, margin_top="0",
         row_spacing=getattr(elem, "totals_row_spacing", 0.0),
+        band_alpha=_band_alpha(template),
     )
     # Keep-Together (Punkt 2): der eigenständige Summenblock wird nie zerschnitten.
     return f'<div class="ild-element ild-totals-element" style="{style_str}; break-inside: avoid; page-break-inside: avoid;">{inner}</div>'

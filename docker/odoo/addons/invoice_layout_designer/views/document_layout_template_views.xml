@@ -112,6 +112,7 @@
                                 </group>
                                 <group string="Zones (mm)">
                                     <field name="header_height"/>
+                                    <field name="header_repeat_each_page"/>
                                     <field name="footer_height"/>
                                     <field name="paper_width" readonly="1"/>
                                     <field name="paper_height" readonly="1"/>
@@ -140,13 +141,19 @@
                         <page string="Background / Letterhead" name="background">
                             <group>
                                 <group string="Background Images (per area)">
+                                    <field name="bg_layout_mode" widget="radio"/>
+                                    <field name="band_opacity"
+                                           invisible="bg_layout_mode != 'full'"
+                                           help="Opacity of opaque bands (section rows, column/header fills, totals box) over the full-bleed image. 100 = opaque (status quo); lower = image shows through, text stays readable."/>
                                     <field name="bg_fit"/>
                                     <field name="bg_header_image" widget="image"
+                                           invisible="bg_layout_mode == 'full'"
                                            help="Background for the header band (top of every page). Height = header height."/>
                                     <field name="bg_footer_image" widget="image"
+                                           invisible="bg_layout_mode == 'full'"
                                            help="Background for the footer band (bottom of every page). Height = footer height."/>
                                     <field name="bg_page_image" widget="image"
-                                           help="Full-page background, repeated behind the content area of every page."/>
+                                           help="Page background. In 'separate areas' mode it repeats behind the content area; in 'whole sheet' mode it fills the entire sheet edge-to-edge."/>
                                 </group>
                                 <group string="Info">
                                     <div class="text-muted" style="padding:8px;">
@@ -154,12 +161,6 @@
                                         <p><strong>Scaling:</strong> <em>Contain</em> fits the whole image without cropping or distortion (recommended). <em>Cover</em> fills and may crop. <em>Stretch</em> fills exactly and may distort.</p>
                                     </div>
                                 </group>
-                            </group>
-                            <group string="Legacy (deprecated — migrated automatically)" col="2">
-                                <field name="background_mode"/>
-                                <field name="background_image" widget="image"
-                                       invisible="background_mode == 'none'"
-                                       help="Deprecated single-image background. Superseded by the per-area fields above."/>
                             </group>
                         </page>
                         <page string="Preview" name="preview">

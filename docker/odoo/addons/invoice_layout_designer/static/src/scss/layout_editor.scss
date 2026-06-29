@@ -436,6 +436,13 @@ $rh: 7px;
     &.ild-zone-header { border-left: 3px solid $z-header; }
     &.ild-zone-body   { border-left: 3px solid $z-body; }
     &.ild-zone-footer { border-left: 3px solid $z-footer; }
+    // Ausgewählte Zone (Punkt 2): klarer Rahmen, damit sichtbar ist, dass die
+    // GANZE Zone (nicht ein Element) selektiert ist.
+    &.ild-zone-selected {
+        outline: 2px solid $dk-accent;
+        outline-offset: -2px;
+        background-color: rgba(113, 75, 103, 0.08);
+    }
 }
 
 .ild-zone-badge {
@@ -497,6 +504,15 @@ $rh: 7px;
 
 // Scrollbar dark
 .ild-sidebar-left, .ild-sidebar-right {
+    // Flexbox-Clipping-Fix (Punkt 3): Ein flex-column-Kind mit overflow:auto
+    // scrollt nur, wenn es unter seine Inhaltshöhe schrumpfen darf. Bootstraps
+    // .flex-grow-1 lässt min-height:auto stehen → der Scrollbereich wächst über
+    // die Sidebar hinaus, die Sidebar hat overflow:hidden → unterer Inhalt wird
+    // ABGESCHNITTEN statt scrollbar. min-height:0 entlang der Flex-Kette behebt
+    // das für ALLE Panels/Tabs (Element-Config, Position, Bedingungen, Stil).
+    min-height: 0;
+    .flex-grow-1, .overflow-auto, [class*="overflow-"] { min-height: 0; }
+
     &::-webkit-scrollbar { width: 5px; }
     &::-webkit-scrollbar-track { background: transparent; }
     &::-webkit-scrollbar-thumb { background: $dk-border; border-radius: 3px; }
@@ -506,6 +522,11 @@ $rh: 7px;
         &::-webkit-scrollbar-thumb { background: $dk-border; border-radius: 3px; }
     }
 }
+
+// Auch die Flex-Zeile (Sidebars + Canvas) und der Canvas-Scroll müssen
+// schrumpfen dürfen, sonst klemmt die ganze Zeile.
+.ild-editor .flex-grow-1.overflow-hidden,
+.ild-canvas-scroll { min-height: 0; }
 
 // ═══════════════════════════════════════════════════════════
 // Feature #5: CONTEXT MENU
@@ -613,10 +634,21 @@ $rh: 7px;
     flex: 1;
     overflow: hidden;
     background: #2a2a3a;
+    position: relative;
 }
+// Schärfe-Fix: Den eingebetteten PDF-Viewer mit DOPPELTER Auflösung rendern und
+// per transform auf die Anzeigegröße herunterskalieren. Downsampling ist immer
+// scharf — egal ob Chromium den iframe als 1×-Textur kompositiert (Ursache der
+// verwaschenen Darstellung). Das exportierte PDF war schon Vektor; nur die
+// Anzeige war weich.
 .ild-preview-iframe {
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200%;
+    height: 200%;
+    transform: scale(0.5);
+    transform-origin: top left;
     border: none;
     background: #f0f0f0;
 }

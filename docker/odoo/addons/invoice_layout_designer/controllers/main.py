@@ -56,6 +56,7 @@ class LayoutEditorController(http.Controller):
                 "margin_right": template.margin_right,
                 "header_height": template.header_height,
                 "footer_height": template.footer_height,
+                "header_repeat_each_page": template.header_repeat_each_page,
                 "layout_json": template.get_layout_data(),
                 "background_mode": template.background_mode or "none",
                 "has_background": bool(template.background_image),
@@ -89,6 +90,8 @@ class LayoutEditorController(http.Controller):
         }
         if "background_mode" in template_data:
             tpl_vals["background_mode"] = template_data["background_mode"]
+        if "header_repeat_each_page" in template_data:
+            tpl_vals["header_repeat_each_page"] = bool(template_data["header_repeat_each_page"])
         template.write(tpl_vals)
 
         # Sync elements: delete removed, update existing, create new
@@ -169,6 +172,10 @@ class LayoutEditorController(http.Controller):
             "table_section_style": data.get("table_section_style", ""),
             "table_note_style": data.get("table_note_style", ""),
             "table_subtotal_style": data.get("table_subtotal_style", ""),
+            "table_subtotal_label": data.get("table_subtotal_label", "Zwischensumme"),
+            "table_subtotal_align": data.get("table_subtotal_align", "right"),
+            "table_subtotal_show_line": data.get("table_subtotal_show_line", True),
+            "totals_show_lines": data.get("totals_show_lines", True),
             # Totals labels
             "totals_label_subtotal": data.get("totals_label_subtotal", "Subtotal:"),
             "totals_label_tax": data.get("totals_label_tax", "Tax:"),
@@ -295,6 +302,58 @@ class LayoutEditorController(http.Controller):
                 "record_name": record.display_name,
                 "warning": "Preview used fallback (unrendered). Error: %s" % str(e),
             }
+
+    @http.route(
+        "/layout/editor/preview_pdf",
+        type="jsonrpc",
+        auth="user",
+        methods=["POST"],
+    )
+    def preview_pdf(self, template_id, record_id=None, **kwargs):
+        """Echte PDF-Vorschau: rendert GENAU dieses Template über die normale
+        Report-Pipeline (_render_qweb_pdf). Mehrseitig + exakte Umbrüche +
+        Keep-Together = Preview == PDF. Liefert das PDF base64-kodiert."""
+        template = request.env["document.layout.template"].browse(template_id)
+        if not template.exists():
+            return {"error": "Template not found"}
+
+        if record_id:
+            record = request.env[field_registry.doc_type_to_model(template.doc_type)].browse(record_id)
+        else:
+            record = template._get_sample_record()
+        if not record:
+            return {"error": f"No sample {template.doc_type} record found."}
+
+        # Report-Action je doc_type (analog action_preview_pdf), damit
+        # _find_custom_template das richtige report.model bekommt.
+        report_ref_map = {
+            "account.move": "invoice_layout_designer.action_report_custom_document",
+            "purchase.order": "purchase.action_report_purchase_order",
+            "sale.order": "sale.action_report_saleorder",
+            "auftragsbestaetigung": "sale.action_report_saleorder",
+            "stock.picking": "stock.action_report_delivery",
+        }
+        report_ref = report_ref_map.get(
+            template.doc_type,
+            "invoice_layout_designer.action_report_custom_document",
+        )
+        try:
+            import base64
+            report = request.env.ref(report_ref)
+            # ild_force_template_id erzwingt GENAU dieses Template (nicht das
+            # is_default-Template des doc_type).
+            pdf_content, _ftype = report.with_context(
+                ild_force_template_id=template.id
+            )._render_qweb_pdf(report_ref, [record.id])
+            return {
+                "pdf_b64": base64.b64encode(pdf_content).decode("ascii"),
+                "record_id": record.id,
+                "record_name": record.display_name,
+            }
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning("Preview-PDF render failed: %s", e)
+            return {"error": "Preview-PDF fehlgeschlagen: %s" % str(e)}
 
     @http.route(
         "/layout/editor/fields",

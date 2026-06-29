@@ -240,7 +240,7 @@
                         <div class="d-flex flex-column" t-att-style="'min-height:' + mm(ch) + 'px;'">
 
                             <!-- HEADER -->
-                            <div class="ild-zone ild-zone-header" t-att-style="zStyle('header')" t-on-dragover="onDragOver" t-on-drop="(ev) => this.onDrop(ev, 'header')">
+                            <div class="ild-zone ild-zone-header" t-att-class="state.selZone === 'header' ? 'ild-zone-selected' : ''" t-att-style="zStyle('header')" t-on-click.self.stop="() => this.selectZone('header')" t-on-dragover="onDragOver" t-on-drop="(ev) => this.onDrop(ev, 'header')">
                                 <div class="ild-zone-badge" style="background:#e57373;color:#fff;">HEADER</div>
                                 <t t-foreach="elsByZone('header')" t-as="el" t-key="el.id">
                                     <div class="ild-el" t-att-style="eStyle(el)" t-on-mousedown="(ev) => this.onElDown(ev, el)" t-on-dblclick="(ev) => this.onElDblClick(ev, el)" t-on-contextmenu="(ev) => this.onElContextMenu(ev, el)">
@@ -260,7 +260,7 @@
                             </div>
 
                             <!-- BODY -->
-                            <div class="ild-zone ild-zone-body" t-att-style="zStyle('body')" t-on-dragover="onDragOver" t-on-drop="(ev) => this.onDrop(ev, 'body')">
+                            <div class="ild-zone ild-zone-body" t-att-class="state.selZone === 'body' ? 'ild-zone-selected' : ''" t-att-style="zStyle('body')" t-on-click.self.stop="() => this.selectZone('body')" t-on-dragover="onDragOver" t-on-drop="(ev) => this.onDrop(ev, 'body')">
                                 <div class="ild-zone-badge" style="background:#81c784;color:#fff;">BODY</div>
                                 <!-- Snap guides -->
                                 <t t-if="state.guides">
@@ -298,7 +298,7 @@
                             </div>
 
                             <!-- FOOTER -->
-                            <div class="ild-zone ild-zone-footer" t-att-style="zStyle('footer')" t-on-dragover="onDragOver" t-on-drop="(ev) => this.onDrop(ev, 'footer')">
+                            <div class="ild-zone ild-zone-footer" t-att-class="state.selZone === 'footer' ? 'ild-zone-selected' : ''" t-att-style="zStyle('footer')" t-on-click.self.stop="() => this.selectZone('footer')" t-on-dragover="onDragOver" t-on-drop="(ev) => this.onDrop(ev, 'footer')">
                                 <div class="ild-zone-badge" style="background:#64b5f6;color:#fff;">FOOTER</div>
                                 <t t-foreach="elsByZone('footer')" t-as="el" t-key="el.id">
                                     <div class="ild-el" t-att-style="eStyle(el)" t-on-mousedown="(ev) => this.onElDown(ev, el)" t-on-dblclick="(ev) => this.onElDblClick(ev, el)" t-on-contextmenu="(ev) => this.onElContextMenu(ev, el)">
@@ -339,7 +339,7 @@
                     <button class="btn btn-sm btn-light ms-1" t-on-click="closePreview" title="Close"><i class="fa fa-times"/></button>
                 </div>
                 <div class="ild-preview-content">
-                    <iframe class="ild-preview-iframe" t-att-srcdoc="state.previewSrcdoc"/>
+                    <iframe class="ild-preview-iframe" t-att-src="state.previewPdfUrl"/>
                 </div>
             </div>
         </t>
@@ -368,13 +368,36 @@
 
         <!-- ═══ RIGHT SIDEBAR: PROPERTIES ═══ -->
         <div class="ild-sidebar-right d-flex flex-column" style="width:260px;min-width:260px;overflow:hidden;">
-            <t t-if="!sel">
+            <t t-if="!sel and !state.selZone">
                 <div class="text-center p-4" style="margin-top:80px;">
                     <i class="fa fa-mouse-pointer fa-3x d-block mb-3" style="opacity:0.2;"/>
-                    <p style="font-size:12px;opacity:0.5;">Select an element to<br/>edit its properties</p>
+                    <p style="font-size:12px;opacity:0.5;">Element oder Zone<br/>auswählen</p>
                 </div>
             </t>
-            <t t-else="">
+            <!-- ZONEN-PANEL (Punkt 2): Klick ins Leere einer Zone wählt die ganze
+                 Zone. Header-Zone bietet die Wiederhol-Option. -->
+            <t t-if="state.selZone and !sel">
+                <div class="d-flex align-items-center px-2 py-2 border-bottom gap-1">
+                    <i class="fa fa-object-group" style="color:#714B67;font-size:11px;"/>
+                    <span class="fw-bold" style="font-size:13px; text-transform:capitalize;"><t t-esc="state.selZone"/>-Zone</span>
+                </div>
+                <div class="flex-grow-1 overflow-auto p-2" style="font-size:12px;">
+                    <t t-if="state.selZone === 'header'">
+                        <label class="d-flex align-items-center gap-2 mt-1" style="font-size:12px;">
+                            <input type="checkbox" t-att-checked="state.tpl.header_repeat_each_page" t-on-change="(ev) => this.tp('header_repeat_each_page', ev)"/>
+                            Header wiederholt sich auf jeder Seite
+                        </label>
+                        <p class="text-muted mt-2" style="font-size:10px; line-height:1.4;">
+                            Aktiv: Der Header wird oben auf JEDER Seite gerendert und der Body (Tabelle &amp; alles darunter) startet darunter — kein Überlappen auf Seite 2+. Reserviert <t t-esc="state.tpl.header_height || 0"/>mm oben.<br/>
+                            <strong>Nur WeasyPrint</strong> (primäre Engine). wkhtmltopdf: Header nur Seite 1.
+                        </p>
+                    </t>
+                    <t t-else="">
+                        <p class="text-muted mt-1" style="font-size:11px;">Keine Zonen-Optionen für die <t t-esc="state.selZone"/>-Zone.</p>
+                    </t>
+                </div>
+            </t>
+            <t t-if="sel">
                 <div class="d-flex align-items-center px-2 py-2 border-bottom gap-1">
                     <i t-att-class="'fa ' + typeIcon(sel.type)" style="color:#714B67;font-size:11px;"/>
                     <input type="text" class="form-control form-control-sm border-0 fw-bold px-1" style="font-size:13px;" t-att-value="sel.name" t-on-change="(ev) => this.sp('name', ev)"/>
@@ -451,6 +474,15 @@
                                 </select>
                             </t>
                         </t>
+                        <!-- Page-Sichtbarkeit: hier im Position-Tab (oben, ohne Scrollen
+                             erreichbar) statt am Ende des langen Config-Tabs. -->
+                        <label class="ild-prop-label mt-2">Anzeigen auf Seite</label>
+                        <select class="form-select form-select-sm mb-1" t-on-change="(ev) => this.sp('show_on_page', ev)">
+                            <option value="all" t-att-selected="(sel.show_on_page||'all') === 'all'">Alle Seiten (fixed, wiederholt sich)</option>
+                            <option value="first" t-att-selected="sel.show_on_page === 'first'">Nur erste Seite</option>
+                            <option value="last" t-att-selected="sel.show_on_page === 'last'">Nur letzte Seite</option>
+                            <option value="middle" t-att-selected="sel.show_on_page === 'middle'">Nur Folgeseiten (ab Seite 2)</option>
+                        </select>
                     </t>
 
                     <!-- STYLE -->
@@ -489,7 +521,7 @@
                         <!-- Field --><t t-if="sel.type === 'field'"><label class="ild-prop-label">Field Path <span class="ild-tooltip-icon" data-tip="e.g. partner_id.name">ℹ</span></label><div class="d-flex gap-1 mb-2"><input type="text" class="form-control form-control-sm" style="flex:1;" t-att-value="sel.field_name" t-on-change="(ev) => this.sp('field_name', ev)"/><button class="btn btn-sm btn-outline-secondary" style="flex:none;" t-on-click="() => this.openFieldBrowser('field')" title="Feld suchen"><i class="fa fa-search"/></button></div><label class="ild-prop-label">Standard</label><input type="text" class="form-control form-control-sm mb-2" t-att-value="sel.field_default" t-on-change="(ev) => this.sp('field_default', ev)"/></t>
                         <!-- Image --><t t-if="sel.type === 'image'"><label class="ild-prop-label">Source</label><select class="form-select form-select-sm mb-2" t-on-change="(ev) => this.sp('image_source', ev)"><option value="company_logo" t-att-selected="sel.image_source==='company_logo'">Company Logo</option><option value="upload" t-att-selected="sel.image_source==='upload'">Upload</option><option value="field" t-att-selected="sel.image_source==='field'">From Field</option></select><t t-if="sel.image_source === 'upload'"><label class="btn btn-sm btn-outline-primary w-100 mb-2" style="font-size:11px;"><i class="fa fa-upload"/> Upload<input type="file" accept="image/*" style="display:none;" t-on-change="(ev) => this.onImageUpload(ev)"/></label></t><t t-if="sel.image_source === 'field'"><input type="text" class="form-control form-control-sm mb-2" placeholder="partner_id.image_128" t-att-value="sel.image_field_name" t-on-change="(ev) => this.sp('image_field_name', ev)"/></t><label class="ild-prop-label">Fit</label><select class="form-select form-select-sm" t-on-change="(ev) => this.sp('image_fit', ev)"><option value="contain">Contain</option><option value="cover">Cover</option><option value="stretch">Stretch</option></select></t>
                         <!-- Table --><t t-if="sel.type === 'table'"><div class="d-flex flex-wrap gap-2 mb-2"><label class="d-flex align-items-center gap-1" style="font-size:11px;"><input type="checkbox" t-att-checked="sel.table_show_header" t-on-change="(ev) => this.sp('table_show_header', ev)"/> Header</label><label class="d-flex align-items-center gap-1" style="font-size:11px;"><input type="checkbox" t-att-checked="sel.table_show_totals" t-on-change="(ev) => this.sp('table_show_totals', ev)"/> Totals</label><label class="d-flex align-items-center gap-1" style="font-size:11px;"><input type="checkbox" t-att-checked="sel.table_zebra" t-on-change="(ev) => this.sp('table_zebra', ev)"/> Zebra</label></div><label class="ild-prop-label">Borders</label><select class="form-select form-select-sm mb-2" t-on-change="(ev) => this.sp('table_border_style', ev)"><option value="none">None</option><option value="horizontal">Horizontal</option><option value="full">Grid</option><option value="outer">Outer</option></select><label class="ild-prop-label">Rows/Page <span class="ild-tooltip-icon" data-tip="0 = auto">ℹ</span></label><input type="number" class="form-control form-control-sm mb-2" min="0" max="100" t-att-value="sel.table_rows_per_page" t-on-change="(ev) => this.sp('table_rows_per_page', ev)"/>
-                            <label class="ild-prop-label">Zeilenabstand (mm) <span class="ild-tooltip-icon" data-tip="Zusätzlicher vertikaler Abstand zwischen Positionen. 0 = Standard">ℹ</span></label><input type="number" class="form-control form-control-sm mb-2" min="0" step="0.5" t-att-value="(sel.table_row_spacing ?? 0)" t-on-change="(ev) => this.sp('table_row_spacing', ev)"/>
+                            <label class="ild-prop-label">Zeilenabstand (mm) <span class="ild-tooltip-icon" data-tip="Vertikaler Abstand zwischen Positionen. 0 = Standard, negativ = enger">ℹ</span></label><input type="number" class="form-control form-control-sm mb-2" min="-1.7" step="0.3" t-att-value="(sel.table_row_spacing ?? 0)" t-on-change="(ev) => this.sp('table_row_spacing', ev)"/>
                             <!-- Columns with Field Browser -->
                             <label class="ild-prop-label fw-bold">Columns</label>
                             <t t-foreach="sel.table_columns || []" t-as="col" t-key="col_index">
@@ -565,6 +597,14 @@
                                     <option value="font-weight:600; border-top:1pt solid #333; background:#fafafa;" t-att-selected="(sel.table_subtotal_style||'').includes('1pt')">Linie fett + Hintergrund</option>
                                     <option value="font-weight:500; font-style:italic; color:#555;" t-att-selected="(sel.table_subtotal_style||'').includes('italic')">Kursiv dezent</option>
                                 </select>
+                                <label class="ild-prop-label">Subtotal Label</label>
+                                <input type="text" class="form-control form-control-sm mb-1" placeholder="Zwischensumme" t-att-value="sel.table_subtotal_label || 'Zwischensumme'" t-on-change="(ev) => this.sp('table_subtotal_label', ev)"/>
+                                <label class="ild-prop-label">Subtotal Ausrichtung</label>
+                                <select class="form-select form-select-sm" t-on-change="(ev) => this.sp('table_subtotal_align', ev)">
+                                    <option value="right" t-att-selected="(sel.table_subtotal_align || 'right')==='right'">Rechts (Standard)</option>
+                                    <option value="left" t-att-selected="sel.table_subtotal_align==='left'">Links</option>
+                                </select>
+                                <label class="d-flex align-items-center gap-1 mt-1" style="font-size:11px;"><input type="checkbox" t-att-checked="sel.table_subtotal_show_line !== false" t-on-change="(ev) => this.sp('table_subtotal_show_line', ev)"/> Subtotal-Trennlinie</label>
                             </div>
 
                             <!-- Totals Labels & Style -->
@@ -590,6 +630,7 @@
                                     <option value="minimal" t-att-selected="sel.totals_style === 'minimal'">Minimal (nur Total fett)</option>
                                     <option value="boxed" t-att-selected="sel.totals_style === 'boxed'">Eingerahmt</option>
                                 </select>
+                                <label class="d-flex align-items-center gap-1 mt-1" style="font-size:11px;"><input type="checkbox" t-att-checked="sel.totals_show_lines !== false" t-on-change="(ev) => this.sp('totals_show_lines', ev)"/> Summenblock-Trennlinien</label>
                                 <!-- Summenblock als Einheit verschieben (numerisch, mm) + Zeilenabstand.
                                      Die drei Zeilen bleiben fest zusammen. 0 = Standardposition/-abstand. -->
                                 <div class="row g-1 mt-1 mb-1">
@@ -623,6 +664,7 @@
                                     <option value="minimal" t-att-selected="sel.totals_style === 'minimal'">Minimal (nur Total fett)</option>
                                     <option value="boxed" t-att-selected="sel.totals_style === 'boxed'">Eingerahmt</option>
                                 </select>
+                                <label class="d-flex align-items-center gap-1 mt-1" style="font-size:11px;"><input type="checkbox" t-att-checked="sel.totals_show_lines !== false" t-on-change="(ev) => this.sp('totals_show_lines', ev)"/> Summenblock-Trennlinien</label>
                                 <!-- Position über Position-Tab (pos_x/pos_y). Hier nur Zeilenabstand. -->
                                 <label class="ild-prop-label mt-1">Zeilenabstand (mm)</label>
                                 <input type="number" class="form-control form-control-sm" step="0.5" min="0" t-att-value="(sel.totals_row_spacing ?? 0)" t-on-change="(ev) => this.sp('totals_row_spacing', ev)" title="Abstand zwischen den Summenzeilen (mm)"/>
@@ -741,13 +783,6 @@
                                 <label class="ild-prop-label">Wert</label>
                                 <input type="text" class="form-control form-control-sm mb-1" placeholder="z.B. sale, out_invoice, DE" t-att-value="sel.condition_value || ''" t-on-change="(ev) => this.sp('condition_value', ev)"/>
                             </t>
-                            <label class="ild-prop-label mt-2">Anzeigen auf Seite</label>
-                            <select class="form-select form-select-sm mb-1" t-on-change="(ev) => this.sp('show_on_page', ev)">
-                                <option value="all" t-att-selected="(sel.show_on_page||'all') === 'all'">Alle Seiten (fixed, wiederholt sich)</option>
-                                <option value="first" t-att-selected="sel.show_on_page === 'first'">Nur erste Seite</option>
-                                <option value="last" t-att-selected="sel.show_on_page === 'last'">Nur letzte Seite</option>
-                                <option value="middle" t-att-selected="sel.show_on_page === 'middle'">Nur Folgeseiten (ab Seite 2)</option>
-                            </select>
                             <t t-if="sel.condition_field">
                                 <div class="d-flex align-items-center mt-1 p-1" style="background:#1a2e1a; border-radius:4px;">
                                     <span style="font-size:9px; color:#81c784;"><i class="fa fa-check-circle"/> Aktiv:</span>

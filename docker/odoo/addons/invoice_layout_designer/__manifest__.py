@@ -1,6 +1,6 @@
 {
     "name": "Invoice Layout Designer",
-    "version": "19.0.2.34.0",
+    "version": "19.0.2.49.0",
     "post_init_hook": "post_init_seed_defaults",
     "category": "Accounting/Invoicing",
     "summary": "WYSIWYG Layout Designer + Custom Fields Builder for Invoices, Quotations, Delivery Slips & Purchase Orders",

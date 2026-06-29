@@ -85,7 +85,7 @@ export class LayoutEditor extends Component {
             loading: true, saving: false, previewing: false, dirty: false,
             tpl: {}, els: [], fields: {},
             // Selection: supports multi-select
-            selId: null, selIds: [],
+            selId: null, selIds: [], selZone: null,
             zoom: 100, grid: true, snap: true, gridSz: 2,
             leftPanel: "elements", fSearch: "",
             fieldBrowser: {open: false, model: "", fields: {}, models: [], loading: false, search: ""},
@@ -102,7 +102,7 @@ export class LayoutEditor extends Component {
             guides: {x: [], y: []},
             editingTextId: null,
             // New features
-            showPreview: false, previewSrcdoc: "", previewFullscreen: false,
+            showPreview: false, previewSrcdoc: "", previewPdfUrl: "", previewFullscreen: false,
             showShortcuts: false,
             showDinGuides: false,
             showRulers: true,
@@ -391,16 +391,26 @@ html,body { margin:0; padding:0; background:#f0f0f0; font-family:Arial,Helvetica
                 elements_data: this.state.els,
             });
             this.state.dirty = false;
-            const r = await rpc("/layout/editor/preview", {template_id: this.tid});
-            if (r.html) {
-                const t = this.state.tpl || {};
-                const pw = t.paper_width || 210, ph = t.paper_height || 297;
-                const mt = t.margin_top ?? 15, mr = t.margin_right ?? 15, mb = t.margin_bottom ?? 15, ml = t.margin_left ?? 15;
-                this.state.previewSrcdoc = this._buildPreviewSrcdoc(r.html, pw, ph, mt, mr, mb, ml);
+            // Echtes PDF (mehrseitig, exakte Umbrüche, Keep-Together = Preview==PDF).
+            const r = await rpc("/layout/editor/preview_pdf", {template_id: this.tid});
+            if (r.pdf_b64) {
+                this._setPdfPreview(r.pdf_b64);
             }
         } catch (e) { /* silent fail */
         }
         this.state.previewing = false;
+    }
+
+    // base64-PDF -> Blob-URL (zuverlässiger als data:-URI im iframe). Alte URL
+    // freigeben, damit kein Speicher leckt bei Auto-Refresh.
+    _setPdfPreview(b64) {
+        const bin = atob(b64);
+        const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+        const blob = new Blob([arr], {type: "application/pdf"});
+        if (this._prevPdfUrl) URL.revokeObjectURL(this._prevPdfUrl);
+        this._prevPdfUrl = URL.createObjectURL(blob);
+        this.state.previewPdfUrl = this._prevPdfUrl;
     }
 
     undo() {
@@ -700,11 +710,35 @@ html,body { margin:0; padding:0; background:#f0f0f0; font-family:Arial,Helvetica
             this.state.selId = id;
             this.state.selIds = [id];
         }
+        // Element-Auswahl hebt eine Zonen-Auswahl auf (sich gegenseitig
+        // ausschließend — das Panel zeigt entweder Element- oder Zonen-Props).
+        this.state.selZone = null;
     }
 
     clearSelection() {
         this.state.selId = null;
         this.state.selIds = [];
+        this.state.selZone = null;
+    }
+
+    // Zonen-Auswahl (Punkt 2): Klick ins Leere einer Zone wählt die GANZE Zone
+    // (nicht ein Einzelelement). Hebt Element-Auswahl auf; das rechte Panel zeigt
+    // dann die Zonen-Eigenschaften (z.B. Header-Wiederholung).
+    selectZone(z) {
+        this.state.selId = null;
+        this.state.selIds = [];
+        this.state.selZone = z;
+    }
+
+    // Template-Property-Setter (analog sp() für Elemente): schreibt ein Feld auf
+    // state.tpl und committet (dirty + History + Preview-Refresh). Persistenz
+    // über den normalen Save (template_data = state.tpl).
+    tp(f, ev) {
+        const v = ev.target.type === "checkbox" ? ev.target.checked
+                : ev.target.type === "number" ? (parseFloat(ev.target.value) || 0)
+                : ev.target.value;
+        this.state.tpl = {...this.state.tpl, [f]: v};
+        this._commit();
     }
 
     // ═══════════════════════════════════════════════════════
@@ -1448,14 +1482,11 @@ html,body { margin:0; padding:0; background:#f0f0f0; font-family:Arial,Helvetica
         await this.save();
         this.state.previewing = true;
         try {
-            const r = await rpc("/layout/editor/preview", {template_id: this.tid});
+            const r = await rpc("/layout/editor/preview_pdf", {template_id: this.tid});
             if (r.error) {
                 this.notification.add(r.error, {type: "warning"});
-            } else if (r.html) {
-                const t = this.state.tpl || {};
-                const pw = t.paper_width || 210, ph = t.paper_height || 297;
-                const mt = t.margin_top ?? 15, mr = t.margin_right ?? 15, mb = t.margin_bottom ?? 15, ml = t.margin_left ?? 15;
-                this.state.previewSrcdoc = this._buildPreviewSrcdoc(r.html, pw, ph, mt, mr, mb, ml);
+            } else if (r.pdf_b64) {
+                this._setPdfPreview(r.pdf_b64);
                 this.state.showPreview = true;
                 this.state.previewFullscreen = false;
             }
@@ -1468,6 +1499,8 @@ html,body { margin:0; padding:0; background:#f0f0f0; font-family:Arial,Helvetica
     closePreview() {
         this.state.showPreview = false;
         this.state.previewSrcdoc = "";
+        if (this._prevPdfUrl) { URL.revokeObjectURL(this._prevPdfUrl); this._prevPdfUrl = ""; }
+        this.state.previewPdfUrl = "";
         this.state.previewFullscreen = false;
     }
 
