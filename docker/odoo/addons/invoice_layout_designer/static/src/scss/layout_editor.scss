@@ -1,0 +1,787 @@
+// ═══════════════════════════════════════════════════════════════════
+// Invoice Layout Designer — DARK MODE Editor
+// ═══════════════════════════════════════════════════════════════════
+
+// ── Dark palette ──
+$dk-bg-0: #111118;       // deepest (canvas surround)
+$dk-bg-1: #16161e;       // sidebar/toolbar background
+$dk-bg-2: #1c1c28;       // cards, inputs, elevated
+$dk-bg-3: #24243a;       // hover, active
+$dk-border: #2a2a3e;     // borders
+$dk-border-light: #33334d; // lighter borders
+$dk-text: #e2e8f0;       // primary text
+$dk-text-muted: #8892a4;  // muted text
+$dk-text-dim: #5a6478;    // very dim
+$dk-accent: #714B67;      // Odoo purple
+$dk-accent-light: rgba(113, 75, 103, 0.25);
+$dk-accent-glow: rgba(113, 75, 103, 0.4);
+
+// Zone colors
+$z-header: #e57373;
+$z-body: #81c784;
+$z-footer: #64b5f6;
+
+$transition: 0.15s ease;
+
+// ═══════════════════════════════════════════════════════════
+// ROOT: Force dark on the entire editor
+// ═══════════════════════════════════════════════════════════
+.ild-editor {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: $dk-bg-0;
+    color: $dk-text;
+
+    // Override Bootstrap light utilities inside editor
+    .bg-white, .bg-light { background: $dk-bg-1 !important; }
+    .border-bottom, .border-end, .border-start, .border-top {
+        border-color: $dk-border !important;
+    }
+    .text-muted { color: $dk-text-muted !important; }
+    .vr { border-color: $dk-border !important; opacity: 0.4; }
+    .badge.text-bg-light { background: $dk-bg-3 !important; color: $dk-text-muted !important; border-color: $dk-border !important; }
+
+    // ── All Buttons dark ──
+    .btn {
+        transition: all $transition;
+    }
+    .btn-light {
+        background: $dk-bg-2;
+        border-color: $dk-border;
+        color: $dk-text-muted;
+        &:hover {
+            background: $dk-bg-3;
+            border-color: $dk-accent;
+            color: $dk-text;
+        }
+        &:active {
+            background: $dk-accent-light;
+            transform: scale(0.97);
+        }
+    }
+    .btn-primary {
+        background: $dk-accent;
+        border-color: $dk-accent;
+        color: #fff;
+        &:hover {
+            background: lighten($dk-accent, 8%);
+            box-shadow: 0 2px 12px $dk-accent-glow;
+        }
+        &:active { transform: scale(0.97); }
+    }
+    .btn-secondary {
+        background: $dk-accent;
+        border-color: $dk-accent;
+        color: #fff;
+    }
+    .btn-outline-info {
+        color: $dk-accent;
+        border-color: $dk-border-light;
+        &:hover {
+            background: $dk-accent;
+            border-color: $dk-accent;
+            color: #fff;
+        }
+    }
+    .btn-outline-primary {
+        color: lighten($dk-accent, 15%);
+        border-color: $dk-border-light;
+        &:hover {
+            background: $dk-accent;
+            border-color: $dk-accent;
+            color: #fff;
+        }
+    }
+    .btn-outline-secondary {
+        color: $dk-text-muted;
+        border-color: $dk-border;
+        &:hover {
+            background: $dk-bg-3;
+            border-color: $dk-border-light;
+            color: $dk-text;
+        }
+    }
+    .btn-close { filter: invert(1); }
+
+    // ── Form controls dark ──
+    .form-control, .form-control-sm, .form-select, .form-select-sm {
+        background: $dk-bg-2 !important;
+        border-color: $dk-border !important;
+        color: $dk-text !important;
+        font-size: 12px;
+        &::placeholder { color: $dk-text-dim; }
+        &:focus {
+            border-color: $dk-accent !important;
+            box-shadow: 0 0 0 2px rgba(113, 75, 103, 0.15) !important;
+        }
+    }
+    .form-control-color {
+        background: $dk-bg-2 !important;
+        border-color: $dk-border !important;
+    }
+    // Dropdown options (Punkt 3): the closed <select> inherits the dark form
+    // control above, but the OPEN option list is browser-native and was
+    // dark-on-dark / unreadable. Force a legible dark palette with a clear
+    // accent for hover/selected. Scoped to the editor only — no effect on
+    // standard Odoo backend selects outside .ild-editor.
+    select option,
+    .form-select option {
+        background-color: $dk-bg-2;
+        color: $dk-text;
+    }
+    select option:hover,
+    select option:focus,
+    select option:checked,
+    .form-select option:checked {
+        background-color: $dk-accent;
+        color: #fff;
+    }
+    // Checkbox styling
+    input[type="checkbox"] {
+        accent-color: $dk-accent;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOOLBAR
+// ═══════════════════════════════════════════════════════════
+.ild-toolbar {
+    min-height: 50px;
+    z-index: 10;
+    background: $dk-bg-1 !important;
+    border-bottom: 1px solid $dk-border !important;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.3);
+
+    strong { color: $dk-text; }
+
+    .ild-save-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        font-weight: 500;
+        padding: 2px 8px;
+        border-radius: 10px;
+        &.saving { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+        &.saved  { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+        &.dirty  { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// PROGRESS BAR
+// ═══════════════════════════════════════════════════════════
+.ild-progress-bar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    z-index: 9999;
+    pointer-events: none;
+    &.active .ild-progress-bar-inner {
+        animation: ild-progress 2s ease-in-out infinite;
+    }
+}
+.ild-progress-bar-inner {
+    height: 100%;
+    background: linear-gradient(90deg, $dk-accent, lighten($dk-accent, 25%), $dk-accent);
+    background-size: 200% 100%;
+    width: 100%;
+    transform: scaleX(0);
+    transform-origin: left;
+}
+@keyframes ild-progress {
+    0%   { transform: scaleX(0); transform-origin: left; }
+    50%  { transform: scaleX(1); transform-origin: left; }
+    51%  { transform: scaleX(1); transform-origin: right; }
+    100% { transform: scaleX(0); transform-origin: right; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// LEFT SIDEBAR
+// ═══════════════════════════════════════════════════════════
+.ild-sidebar-left {
+    background: $dk-bg-1 !important;
+    border-right: 1px solid $dk-border !important;
+
+    .ild-sidebar-tab {
+        font-size: 13px;
+        font-weight: 500;
+        padding: 10px 0;
+        border: none;
+        border-radius: 0;
+        color: $dk-text-muted;
+        background: transparent !important;
+        border-bottom: 2px solid transparent;
+        transition: all $transition;
+        &:hover { color: $dk-text; background: $dk-bg-2 !important; }
+        &.active {
+            color: lighten($dk-accent, 20%);
+            border-bottom-color: $dk-accent;
+            font-weight: 600;
+        }
+    }
+
+    .ild-section-title {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: $dk-text-dim;
+    }
+
+    .ild-elem-chip {
+        border: 1px solid $dk-border;
+        border-radius: 6px;
+        padding: 6px 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: grab;
+        font-size: 12px;
+        user-select: none;
+        background: $dk-bg-2;
+        color: $dk-text-muted;
+        transition: all $transition;
+        i { color: lighten($dk-accent, 15%); width: 14px; text-align: center; }
+        &:hover {
+            background: $dk-bg-3;
+            border-color: $dk-accent;
+            color: $dk-text;
+            box-shadow: 0 0 8px rgba(113, 75, 103, 0.15);
+        }
+        &:active { cursor: grabbing; transform: scale(0.96); }
+    }
+
+    .ild-elem-item {
+        display: flex;
+        align-items: center;
+        padding: 5px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        gap: 6px;
+        color: $dk-text-muted;
+        transition: background $transition;
+        &:hover { background: $dk-bg-3; color: $dk-text; }
+        &.selected {
+            background: $dk-accent-light;
+            border: 1px solid rgba(113, 75, 103, 0.3);
+            color: $dk-text;
+        }
+    }
+
+    .ild-field-cat {
+        display: flex;
+        align-items: center;
+        padding: 4px 2px;
+        cursor: pointer;
+        border-radius: 4px;
+        color: $dk-text-muted;
+        transition: background $transition;
+        &:hover { background: $dk-bg-2; }
+    }
+
+    .ild-field-item {
+        display: flex;
+        align-items: center;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: grab;
+        font-size: 12px;
+        color: $dk-text-muted;
+        transition: all $transition;
+        &:hover { background: $dk-bg-3; color: lighten($dk-accent, 20%); }
+        &:active { cursor: grabbing; }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// RIGHT SIDEBAR
+// ═══════════════════════════════════════════════════════════
+.ild-sidebar-right {
+    background: $dk-bg-1 !important;
+    border-left: 1px solid $dk-border !important;
+
+    .ild-prop-tab {
+        font-size: 12px;
+        font-weight: 500;
+        padding: 8px 0;
+        border: none;
+        border-radius: 0;
+        color: $dk-text-muted;
+        background: transparent !important;
+        border-bottom: 2px solid transparent;
+        transition: all $transition;
+        &:hover { color: $dk-text; }
+        &.active {
+            color: lighten($dk-accent, 20%);
+            border-bottom-color: $dk-accent;
+            font-weight: 600;
+        }
+    }
+
+    .ild-prop-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: $dk-text-muted;
+        margin-bottom: 3px;
+        display: flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    // "Select an element" empty state
+    .text-center.text-muted {
+        color: $dk-text-dim !important;
+        i { color: $dk-text-dim !important; }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// TOOLTIPS
+// ═══════════════════════════════════════════════════════════
+.ild-tooltip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: rgba(113, 75, 103, 0.15);
+    color: lighten($dk-accent, 20%);
+    font-size: 8px;
+    cursor: help;
+    margin-left: 3px;
+    flex-shrink: 0;
+    position: relative;
+    transition: all $transition;
+    &:hover { background: $dk-accent; color: #fff; }
+
+    &[data-tip] {
+        &::after {
+            content: attr(data-tip);
+            position: absolute;
+            bottom: calc(100% + 6px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0d0d14;
+            color: $dk-text;
+            font-size: 10px;
+            font-weight: 400;
+            line-height: 1.35;
+            padding: 5px 8px;
+            border-radius: 5px;
+            max-width: 220px;
+            white-space: normal;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+            border: 1px solid $dk-border;
+        }
+        &::before {
+            content: "";
+            position: absolute;
+            bottom: calc(100% + 2px);
+            left: 50%;
+            transform: translateX(-50%);
+            border: 4px solid transparent;
+            border-top-color: #0d0d14;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+        }
+        &:hover::after, &:hover::before { opacity: 1; }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CANVAS
+// ═══════════════════════════════════════════════════════════
+.ild-el {
+    transition: box-shadow 0.1s ease;
+    &:hover {
+        border-color: rgba(113, 75, 103, 0.4) !important;
+        box-shadow: 0 0 0 1px rgba(113, 75, 103, 0.2);
+    }
+}
+
+// Resize handles
+$rh: 7px;
+.ild-rh {
+    position: absolute;
+    width: $rh; height: $rh;
+    background: $dk-bg-1;
+    border: 1.5px solid $dk-accent;
+    border-radius: 1px;
+    z-index: 101;
+    transition: transform 0.1s;
+    &:hover { transform: scale(1.3); background: $dk-accent; }
+
+    &.ild-rh-nw { top: -$rh/2; left: -$rh/2; cursor: nw-resize; }
+    &.ild-rh-n  { top: -$rh/2; left: 50%; margin-left: -$rh/2; cursor: n-resize; }
+    &.ild-rh-ne { top: -$rh/2; right: -$rh/2; cursor: ne-resize; }
+    &.ild-rh-e  { top: 50%; right: -$rh/2; margin-top: -$rh/2; cursor: e-resize; }
+    &.ild-rh-se { bottom: -$rh/2; right: -$rh/2; cursor: se-resize; }
+    &.ild-rh-s  { bottom: -$rh/2; left: 50%; margin-left: -$rh/2; cursor: s-resize; }
+    &.ild-rh-sw { bottom: -$rh/2; left: -$rh/2; cursor: sw-resize; }
+    &.ild-rh-w  { top: 50%; left: -$rh/2; margin-top: -$rh/2; cursor: w-resize; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// ZONES: colored edges, badges, legend
+// ═══════════════════════════════════════════════════════════
+.ild-zone {
+    transition: background-color 0.15s;
+    position: relative;
+    &.ild-zone-header { border-left: 3px solid $z-header; }
+    &.ild-zone-body   { border-left: 3px solid $z-body; }
+    &.ild-zone-footer { border-left: 3px solid $z-footer; }
+}
+
+.ild-zone-badge {
+    position: absolute;
+    top: 0;
+    left: -3px;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    padding: 1px 7px 1px 5px;
+    border-radius: 0 0 4px 0;
+    pointer-events: none;
+    z-index: 50;
+    opacity: 0.85;
+    line-height: 16px;
+}
+
+.ild-zone-legend {
+    position: sticky;
+    top: 8px;
+    float: right;
+    margin-right: 12px;
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    background: rgba(10, 10, 18, 0.8);
+    backdrop-filter: blur(8px);
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid $dk-border;
+    pointer-events: none;
+}
+.ild-zone-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.65);
+    letter-spacing: 0.3px;
+}
+.ild-zone-legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MISC
+// ═══════════════════════════════════════════════════════════
+.ild-editor [draggable="true"] { user-select: none; }
+
+// Field browser modal (already dark, just ensure consistency)
+.ild-field-row {
+    &:hover { background-color: rgba(113, 75, 103, 0.15) !important; }
+}
+
+// Scrollbar dark
+.ild-sidebar-left, .ild-sidebar-right {
+    &::-webkit-scrollbar { width: 5px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb { background: $dk-border; border-radius: 3px; }
+    * {
+        &::-webkit-scrollbar { width: 5px; }
+        &::-webkit-scrollbar-track { background: transparent; }
+        &::-webkit-scrollbar-thumb { background: $dk-border; border-radius: 3px; }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Feature #5: CONTEXT MENU
+// ═══════════════════════════════════════════════════════════
+.ild-ctx-menu {
+    position: fixed;
+    z-index: 10000;
+    background: $dk-bg-1;
+    border: 1px solid $dk-border;
+    border-radius: 8px;
+    padding: 4px 0;
+    min-width: 180px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    backdrop-filter: blur(8px);
+}
+.ild-ctx-item {
+    padding: 8px 16px;
+    font-size: 12px;
+    color: $dk-text-muted;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.1s;
+    i { width: 14px; text-align: center; font-size: 10px; }
+    &:hover { background: $dk-bg-3; color: $dk-text; }
+}
+.ild-ctx-sep {
+    height: 1px;
+    background: $dk-border;
+    margin: 3px 8px;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Feature #2: LAYERS PANEL
+// ═══════════════════════════════════════════════════════════
+.ild-layer-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 8px;
+    border-radius: 4px;
+    cursor: grab;
+    font-size: 12px;
+    color: $dk-text-muted;
+    transition: background 0.1s;
+    border: 1px solid transparent;
+    &:hover { background: $dk-bg-3; color: $dk-text; }
+    &.selected { background: $dk-accent-light; border-color: rgba(113,75,103,0.3); color: $dk-text; }
+    &.hidden-el { opacity: 0.4; }
+    &:active { cursor: grabbing; }
+}
+.ild-layer-btn {
+    background: none;
+    border: none;
+    color: $dk-text-dim;
+    font-size: 10px;
+    padding: 1px 3px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.1s;
+    &:hover { background: $dk-bg-3; color: $dk-text; }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Feature #1: PREVIEW PANEL (side-by-side)
+// ═══════════════════════════════════════════════════════════
+.ild-preview-panel {
+    width: 50vw;
+    min-width: 320px;
+    max-width: 70vw;
+    background: $dk-bg-0;
+    border-left: 1px solid $dk-border;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.2s ease;
+
+    // Fullscreen mode: overlay the entire editor
+    &.fullscreen {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        width: 100% !important;
+        max-width: 100% !important;
+        z-index: 9998;
+        border: none;
+    }
+}
+
+// Resize handle (left edge of preview panel)
+.ild-preview-resize {
+    position: absolute;
+    top: 0; bottom: 0; left: 0;
+    width: 5px;
+    cursor: col-resize;
+    z-index: 10;
+    background: transparent;
+    transition: background 0.15s;
+    &:hover, &:active {
+        background: $dk-accent;
+    }
+}
+.ild-preview-content {
+    flex: 1;
+    overflow: hidden;
+    background: #2a2a3a;
+}
+.ild-preview-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #f0f0f0;
+}
+.ild-preview-page {
+    background: white;
+    max-width: 210mm;
+    margin: 0 auto;
+    padding: 15mm;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    min-height: 297mm;
+    color: #000;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Feature #12: RULERS
+// ═══════════════════════════════════════════════════════════
+.ild-ruler-h {
+    height: 16px;
+    position: relative;
+    margin-bottom: 2px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.ild-ruler-mark {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    border-left: 1px solid rgba(255,255,255,0.12);
+    span {
+        position: absolute;
+        top: 1px;
+        left: 2px;
+        font-size: 7px;
+        color: rgba(255,255,255,0.3);
+        font-family: monospace;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════
+// Feature #4: DIN 5008 GUIDES
+// ═══════════════════════════════════════════════════════════
+.ild-din-guide-h {
+    position: absolute;
+    left: 0; right: 0;
+    border-top: 1px dashed;
+    pointer-events: none;
+    z-index: 45;
+    opacity: 0.5;
+}
+.ild-din-guide-v {
+    position: absolute;
+    top: 0; bottom: 0;
+    border-left: 1px dashed;
+    pointer-events: none;
+    z-index: 45;
+    opacity: 0.5;
+}
+.ild-din-label {
+    position: absolute;
+    font-size: 7px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    top: -1px;
+    right: 2px;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+// ═══════════════════════════════════════════════════════════
+// Feature #11: ELEMENT TYPE ICON (corner badge)
+// ═══════════════════════════════════════════════════════════
+.ild-el-type-icon {
+    position: absolute;
+    top: 1px; right: 1px;
+    width: 13px; height: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(113,75,103,0.8);
+    color: #fff;
+    font-size: 7px;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 5;
+}
+
+// ═══════════════════════════════════════════════════════════
+// SNAP GUIDES
+// ═══════════════════════════════════════════════════════════
+.ild-snap-guide-v {
+    position: absolute;
+    top: 0; bottom: 0;
+    border-left: 1px dashed $dk-accent;
+    pointer-events: none;
+    z-index: 999;
+}
+.ild-snap-guide-h {
+    position: absolute;
+    left: 0; right: 0;
+    border-top: 1px dashed $dk-accent;
+    pointer-events: none;
+    z-index: 999;
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODALS (shared dark style)
+// ═══════════════════════════════════════════════════════════
+.ild-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+}
+.ild-modal {
+    background: $dk-bg-1;
+    border: 1px solid $dk-border;
+    border-radius: 12px;
+    width: 650px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 16px 64px rgba(0,0,0,0.5);
+}
+.ild-modal-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid $dk-border;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: $dk-text;
+}
+
+// ═══════════════════════════════════════════════════════════
+// FIELD BROWSER MODAL
+// ═══════════════════════════════════════════════════════════
+.ild-field-browser-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(2px);
+}
+.ild-field-browser {
+    background: $dk-bg-1;
+    border: 1px solid $dk-border;
+    border-radius: 10px;
+    width: 500px;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.5);
+    color: $dk-text;
+}
+.ild-field-browser-item {
+    &:hover {
+        background: $dk-bg-2;
+    }
+}

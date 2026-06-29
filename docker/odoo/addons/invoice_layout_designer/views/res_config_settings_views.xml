@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_layout" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.layout.designer</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app_section string="Document Layout Designer" name="layout_designer">
+                    <block title="Default Layout Templates">
+                        <setting string="Default Invoice Layout"
+                                 help="Select the default layout template for invoices and credit notes.">
+                            <field name="ild_invoice_template_id"/>
+                        </setting>
+                        <setting string="Default Quotation Layout"
+                                 help="Select the default layout template for quotations and sales orders.">
+                            <field name="ild_sale_template_id"/>
+                        </setting>
+                        <setting string="Default Delivery Slip Layout"
+                                 help="Select the default layout template for delivery slips.">
+                            <field name="ild_picking_template_id"/>
+                        </setting>
+                        <setting string="Default Purchase Order Layout"
+                                 help="Select the default layout template for purchase orders.">
+                            <field name="ild_purchase_template_id"/>
+                        </setting>
+                    </block>
+                    <block title="PDF Engine">
+                        <setting string="PDF Rendering Engine"
+                                 help="WeasyPrint erzeugt PDFs die identisch zum Browser-Preview aussehen. Standard: wkhtmltopdf.">
+                            <field name="ild_pdf_engine"/>
+                            <div class="text-muted mt-1">
+                                <field name="ild_weasyprint_available" invisible="1"/>
+                                <span invisible="not ild_weasyprint_available" class="text-success">
+                                    <i class="fa fa-check-circle"/> WeasyPrint ist installiert und bereit.
+                                </span>
+                                <span invisible="ild_weasyprint_available" class="text-warning">
+                                    <i class="fa fa-warning"/> WeasyPrint nicht gefunden. Installation: <code>pip install weasyprint</code>
+                                </span>
+                            </div>
+                        </setting>
+                    </block>
+                </app_section>
+            </xpath>
+        </field>
+    </record>
+</odoo>

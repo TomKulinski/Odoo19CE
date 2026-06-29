@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_document_layout_template_kanban" model="ir.ui.view">
+        <field name="name">document.layout.template.kanban</field>
+        <field name="model">document.layout.template</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="doc_type" js_class="ild_chain_kanban">
+                <field name="name"/>
+                <field name="doc_type"/>
+                <field name="is_default"/>
+                <field name="element_count"/>
+                <field name="source_template_id"/>
+                <templates>
+                    <t t-name="card">
+                        <!-- Chain overlay marker: carries this card's id and its
+                             source_template_id so the SVG arrow overlay can map
+                             DOM cards to chain edges. Hidden, no layout impact. -->
+                        <span class="ild-chain-marker" style="display:none;"
+                              t-att-data-tpl-id="record.id.raw_value"
+                              t-att-data-src-id="record.source_template_id.raw_value or ''"/>
+                        <div class="d-flex flex-column">
+                            <strong><field name="name"/></strong>
+                            <div class="text-muted small"><field name="doc_type"/></div>
+                            <div class="mt-1 small"><field name="element_count"/> elements</div>
+                            <div t-if="record.is_default.raw_value" class="mt-1">
+                                <span class="badge text-bg-success">Default</span>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+    <record id="view_document_layout_template_list" model="ir.ui.view">
+        <field name="name">document.layout.template.list</field>
+        <field name="model">document.layout.template</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="doc_type"/>
+                <field name="layout_style" optional="show"/>
+                <field name="paper_format"/>
+                <field name="is_default"/>
+                <field name="element_count"/>
+                <field name="company_id" optional="hide"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_document_layout_template_form" model="ir.ui.view">
+        <field name="name">document.layout.template.form</field>
+        <field name="model">document.layout.template</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_open_editor" string="Open Layout Editor" type="object" class="btn-primary" icon="fa-paint-brush"/>
+                    <button name="action_preview_pdf" string="Preview PDF" type="object" class="btn-secondary" icon="fa-file-pdf-o"/>
+                    <button name="action_export_qweb" string="Export QWeb" type="object" class="btn-secondary" icon="fa-code"
+                            help="Export as standalone QWeb XML (works without this module, e.g. for SaaS customers)"/>
+                    <button name="%(action_template_import_wizard)d" string="Import" type="action" class="btn-secondary" icon="fa-upload"
+                            help="Import a layout from a JSON or QWeb XML file previously exported here. Creates a new template."/>
+                    <button name="action_duplicate_template" string="Duplicate" type="object" class="btn-secondary" icon="fa-copy"/>
+                    <button name="action_open_reset_ghost_wizard" string="Clean Ghost Elements" type="object" class="btn-secondary" icon="fa-eraser"
+                            help="Opens a wizard to remove orphaned layout elements. Preserves user customizations and module defaults."/>
+                    <button name="action_reset_to_default" string="Reset to Default" type="object" class="btn-warning" icon="fa-refresh"
+                            confirm="This will delete ALL current elements (including your customizations) and restore the original default layout. For a safer variant use 'Clean Ghost Elements'. Continue?"/>
+                    <button name="action_open_propagate_wizard" string="Header/Footer übernehmen" type="object" class="btn-secondary" icon="fa-share-alt"
+                            invisible="doc_type != 'sale.order' or not linked_target_ids"
+                            help="Übernimmt Header und Footer dieser Sale Order auf die verknüpften Ziel-Dokumente. Der Body der Ziele bleibt unverändert."/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_editor" type="object" class="oe_stat_button" icon="fa-th">
+                            <field name="element_count" widget="statinfo" string="Elements"/>
+                        </button>
+                    </div>
+                    <div class="oe_title"><h1><field name="name" placeholder="Template Name..."/></h1></div>
+                    <group>
+                        <group string="Document Settings">
+                            <field name="linked_target_ids" invisible="1"/>
+                            <field name="doc_type"/>
+                            <field name="sale_state_filter" invisible="doc_type != 'sale.order'"/>
+                            <field name="layout_style"/>
+                            <field name="paper_format"/>
+                            <field name="is_default"/>
+                            <field name="active"/>
+                            <field name="show_odoo_barcode"/>
+                        </group>
+                        <group string="Company">
+                            <field name="company_id"/>
+                            <field name="style_id"/>
+                            <field name="tag_ids" widget="many2many_tags"/>
+                            <field name="source_template_id"
+                                   invisible="doc_type == 'sale.order'"
+                                   domain="[('doc_type', '=', 'sale.order')]"
+                                   options="{'no_create': True}"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Page Setup" name="page_setup">
+                            <group>
+                                <group string="Papierformat">
+                                    <field name="paperformat_id" placeholder="Optional: Odoo Papierformat verknüpfen"/>
+                                </group>
+                            </group>
+                            <group>
+                                <group string="Margins (mm)">
+                                    <field name="margin_top"/>
+                                    <field name="margin_bottom"/>
+                                    <field name="margin_left"/>
+                                    <field name="margin_right"/>
+                                </group>
+                                <group string="Zones (mm)">
+                                    <field name="header_height"/>
+                                    <field name="footer_height"/>
+                                    <field name="paper_width" readonly="1"/>
+                                    <field name="paper_height" readonly="1"/>
+                                </group>
+                            </group>
+                        </page>
+                        <page string="Elements" name="elements">
+                            <field name="element_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="element_type"/>
+                                    <field name="zone"/>
+                                    <field name="pos_x"/>
+                                    <field name="pos_y"/>
+                                    <field name="width"/>
+                                    <field name="height"/>
+                                    <field name="visible"/>
+                                    <field name="locked"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Description" name="description">
+                            <field name="description"/>
+                        </page>
+                        <page string="Background / Letterhead" name="background">
+                            <group>
+                                <group string="Background Images (per area)">
+                                    <field name="bg_fit"/>
+                                    <field name="bg_header_image" widget="image"
+                                           help="Background for the header band (top of every page). Height = header height."/>
+                                    <field name="bg_footer_image" widget="image"
+                                           help="Background for the footer band (bottom of every page). Height = footer height."/>
+                                    <field name="bg_page_image" widget="image"
+                                           help="Full-page background, repeated behind the content area of every page."/>
+                                </group>
+                                <group string="Info">
+                                    <div class="text-muted" style="padding:8px;">
+                                        <p><strong>Header / Footer / Page:</strong> Each area takes its own image and repeats on every page. Leave empty for no background in that area.</p>
+                                        <p><strong>Scaling:</strong> <em>Contain</em> fits the whole image without cropping or distortion (recommended). <em>Cover</em> fills and may crop. <em>Stretch</em> fills exactly and may distort.</p>
+                                    </div>
+                                </group>
+                            </group>
+                            <group string="Legacy (deprecated — migrated automatically)" col="2">
+                                <field name="background_mode"/>
+                                <field name="background_image" widget="image"
+                                       invisible="background_mode == 'none'"
+                                       help="Deprecated single-image background. Superseded by the per-area fields above."/>
+                            </group>
+                        </page>
+                        <page string="Preview" name="preview">
+                            <field name="preview_image" widget="image"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <record id="view_document_layout_template_search" model="ir.ui.view">
+        <field name="name">document.layout.template.search</field>
+        <field name="model">document.layout.template</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="doc_type"/>
+                <filter name="filter_invoices" string="Invoices" domain="[('doc_type', '=', 'account.move')]"/>
+                <filter name="filter_sales" string="Quotations" domain="[('doc_type', '=', 'sale.order')]"/>
+                <filter name="filter_confirmations" string="Order Confirmations" domain="[('doc_type', '=', 'auftragsbestaetigung')]"/>
+                <filter name="filter_picking" string="Delivery Slips" domain="[('doc_type', '=', 'stock.picking')]"/>
+                <filter name="filter_purchase" string="Purchase Orders" domain="[('doc_type', '=', 'purchase.order')]"/>
+                <separator/>
+                <filter name="filter_default" string="Default Templates" domain="[('is_default', '=', True)]"/>
+            </search>
+        </field>
+    </record>
+    <record id="action_document_layout_template" model="ir.actions.act_window">
+        <field name="name">Layout Templates</field>
+        <field name="res_model">document.layout.template</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_document_layout_template_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Create your first document layout!</p>
+            <p>Design professional invoices, quotations, and other business documents with our visual drag &amp; drop editor.</p>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Main report template that uses the transpiled custom layout -->
+    <template id="report_custom_document">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <!-- Empty header/footer markers: Odoo's _prepare_html uses
+                     these (empty) regions instead of falling back to
+                     web.external_layout, whose default company chrome
+                     would otherwise overlap our custom layout. -->
+                <div class="header" style="display:none;"/>
+                <div class="footer" style="display:none;"/>
+                <div class="article o_report_layout_custom">
+                    <div class="page">
+                        <!-- The transpiler injects the custom layout HTML here -->
+                        <t t-if="custom_qweb">
+                            <t t-out="custom_qweb"/>
+                        </t>
+                        <t t-else="">
+                            <!-- Fallback: basic invoice layout -->
+                            <t t-call="invoice_layout_designer.report_fallback_invoice"/>
+                        </t>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </template>
+
+    <!-- Fallback template when no custom layout is defined -->
+    <template id="report_fallback_invoice">
+        <div style="font-family: Helvetica, Arial, sans-serif; font-size: 10pt;">
+            <!-- Header -->
+            <div style="margin-bottom: 20mm;">
+                <div style="float: right; text-align: right;">
+                    <h2>
+                        <t t-if="doc._name == 'account.move'">
+                            <span t-if="doc.move_type == 'out_invoice'">Invoice</span>
+                            <span t-if="doc.move_type == 'out_refund'">Credit Note</span>
+                        </t>
+                        <t t-if="doc._name == 'sale.order'">
+                            <span t-if="doc.state in ('draft', 'sent')">Quotation</span>
+                            <span t-else="">Sales Order</span>
+                        </t>
+                        <t t-if="doc._name == 'purchase.order'">Purchase Order</t>
+                        <t t-if="doc._name == 'stock.picking'">Delivery Slip</t>
+                    </h2>
+                    <div style="font-size: 14pt; font-weight: bold;">
+                        <t t-esc="doc.name"/>
+                    </div>
+                </div>
+                <div style="clear: both;"/>
+            </div>
+
+            <!-- Partner info -->
+            <div style="margin-bottom: 10mm;">
+                <strong><t t-esc="doc.partner_id.name"/></strong><br/>
+                <t t-if="doc.partner_id.street">
+                    <t t-esc="doc.partner_id.street"/><br/>
+                </t>
+                <t t-if="doc.partner_id.street2">
+                    <t t-esc="doc.partner_id.street2"/><br/>
+                </t>
+                <t t-esc="doc.partner_id.zip"/>
+                <t t-esc="doc.partner_id.city"/>
+                <t t-if="doc.partner_id.country_id">
+                    <br/><t t-esc="doc.partner_id.country_id.name"/>
+                </t>
+            </div>
+
+            <!-- Dates -->
+            <div style="margin-bottom: 10mm;">
+                <table>
+                    <t t-if="doc._name == 'account.move'">
+                        <tr>
+                            <td style="padding-right: 10mm;"><strong>Date:</strong></td>
+                            <td><t t-esc="doc.invoice_date" t-options='{"widget": "date"}'/></td>
+                        </tr>
+                        <tr t-if="doc.invoice_date_due">
+                            <td style="padding-right: 10mm;"><strong>Due Date:</strong></td>
+                            <td><t t-esc="doc.invoice_date_due" t-options='{"widget": "date"}'/></td>
+                        </tr>
+                    </t>
+                </table>
+            </div>
+
+            <!-- Line items table -->
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 5mm;">
+                <thead>
+                    <tr style="border-bottom: 2pt solid #333;">
+                        <th style="text-align: left; padding: 2mm;">Description</th>
+                        <th style="text-align: right; padding: 2mm;">Qty</th>
+                        <th style="text-align: right; padding: 2mm;">Unit Price</th>
+                        <th style="text-align: right; padding: 2mm;">Tax</th>
+                        <th style="text-align: right; padding: 2mm;">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Invoice lines -->
+                    <t t-if="doc._name == 'account.move'">
+                        <t t-foreach="doc.invoice_line_ids" t-as="line">
+                            <t t-if="not line.display_type">
+                                <tr style="border-bottom: 0.5pt solid #eee;">
+                                    <td style="padding: 1.5mm 2mm;">
+                                        <t t-esc="line.name"/>
+                                    </td>
+                                    <td style="text-align: right; padding: 1.5mm 2mm;">
+                                        <t t-esc="line.quantity"/>
+                                    </td>
+                                    <td style="text-align: right; padding: 1.5mm 2mm;">
+                                        <t t-esc="line.price_unit"
+                                           t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                    </td>
+                                    <td style="text-align: right; padding: 1.5mm 2mm;">
+                                        <t t-esc="', '.join(line.tax_ids.mapped('name'))"/>
+                                    </td>
+                                    <td style="text-align: right; padding: 1.5mm 2mm;">
+                                        <t t-esc="line.price_subtotal"
+                                           t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                                    </td>
+                                </tr>
+                            </t>
+                            <t t-if="line.display_type == 'line_section'">
+                                <tr>
+                                    <td colspan="5" style="font-weight: bold; padding-top: 3mm;">
+                                        <t t-esc="line.name"/>
+                                    </td>
+                                </tr>
+                            </t>
+                        </t>
+                    </t>
+                </tbody>
+            </table>
+
+            <!-- Totals -->
+            <t t-if="doc._name in ('account.move', 'sale.order', 'purchase.order')">
+                <div style="text-align: right; margin-top: 5mm;">
+                    <table style="margin-left: auto;">
+                        <tr>
+                            <td style="padding: 1mm 5mm;">Subtotal:</td>
+                            <td style="padding: 1mm 2mm; text-align: right;">
+                                <t t-esc="doc.amount_untaxed"
+                                   t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 1mm 5mm;">Tax:</td>
+                            <td style="padding: 1mm 2mm; text-align: right;">
+                                <t t-esc="doc.amount_tax"
+                                   t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                            </td>
+                        </tr>
+                        <tr style="border-top: 1.5pt solid #333; font-weight: bold;">
+                            <td style="padding: 2mm 5mm;">Total:</td>
+                            <td style="padding: 2mm 2mm; text-align: right;">
+                                <t t-esc="doc.amount_total"
+                                   t-options='{"widget": "monetary", "display_currency": doc.currency_id}'/>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </t>
+
+            <!-- Notes -->
+            <t t-if="doc._name == 'account.move' and doc.narration">
+                <div style="margin-top: 10mm; font-size: 9pt; color: #666;">
+                    <t t-out="doc.narration"/>
+                </div>
+            </t>
+        </div>
+    </template>
+</odoo>

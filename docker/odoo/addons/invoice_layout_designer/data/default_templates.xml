@@ -1,0 +1,1065 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+
+        <!-- ===== DEFAULT STYLE ===== -->
+        <record id="style_modern" model="document.layout.style">
+            <field name="name">Modern Clean</field>
+            <field name="font_family">Helvetica, Arial, sans-serif</field>
+            <field name="font_size">11</field>
+            <field name="color">#333333</field>
+            <field name="primary_color">#2c3e50</field>
+            <field name="secondary_color">#7f8c8d</field>
+            <field name="accent_color">#3498db</field>
+            <field name="heading_font">Helvetica</field>
+            <field name="body_font">Helvetica</field>
+        </record>
+
+        <!-- ===== TEMPLATE: Modern Invoice (non-default fallback) ===== -->
+        <record id="template_modern_invoice" model="document.layout.template">
+            <field name="name">Modern Invoice</field>
+            <field name="layout_style">modern</field>
+            <field name="doc_type">account.move</field>
+            <field name="paper_format">A4</field>
+            <field name="margin_top">20</field>
+            <field name="margin_bottom">20</field>
+            <field name="margin_left">25</field>
+            <field name="margin_right">20</field>
+            <field name="header_height">40</field>
+            <field name="footer_height">25</field>
+            <field name="style_id" ref="style_modern"/>
+            <field name="is_default">False</field>
+            <field name="description">Clean, modern invoice layout with company logo on the left and document details on the right.</field>
+        </record>
+
+        <!-- Header: Company Logo -->
+        <record id="elem_modern_inv_logo" model="document.layout.element">
+            <field name="template_id" ref="template_modern_invoice"/>
+            <field name="name">Company Logo</field>
+            <field name="element_type">image</field>
+            <field name="zone">header</field>
+            <field name="pos_x">0</field>
+            <field name="pos_y">0</field>
+            <field name="width">50</field>
+            <field name="height">20</field>
+            <field name="image_source">company_logo</field>
+            <field name="image_fit">contain</field>
+            <field name="sequence">10</field>
+        </record>
+
+        <!-- Header: Invoice Title -->
+        <record id="elem_modern_inv_title" model="document.layout.element">
+            <field name="template_id" ref="template_modern_invoice"/>
+            <field name="name">Invoice Title</field>
+            <field name="element_type">text</field>
+            <field name="zone">header</field>
+            <field name="pos_x">95</field>
+            <field name="pos_y">0</field>
+            <field name="width">70</field>
+            <field name="height">10</field>
+            <field name="text_content">&lt;strong style="font-size: 24pt; color: #2c3e50;"&gt;Rechnung&lt;/strong&gt;</field>
+            <field name="text_align">right</field>
+            <field name="sequence">20</field>
+        </record>
+
+        <!-- Header: Invoice Number -->
+        <record id="elem_modern_inv_number" model="document.layout.element">
+            <field name="template_id" ref="template_modern_invoice"/>
+            <field name="name">Invoice Number</field>
+            <field name="element_type">field</field>
+            <field name="zone">header</field>
+            <field name="pos_x">95</field>
+            <field name="pos_y">12</field>
+            <field name="width">70</field>
+            <field name="height">6</field>
+            <field name="field_name">name</field>
+            <field name="field_default">[Invoice Number]</field>
+            <field name="text_align">right</field>
+            <field name="style_json">{"font-size": "11pt", "font-weight": "bold"}</field>
+            <field name="sequence">30</field>
+        </record>
+
+        <!-- Header: Invoice Date -->
+        <record id="elem_modern_inv_date" model="document.layout.element">
+            <field name="template_id" ref="template_modern_invoice"/>
+            <field name="name">Invoice Date</field>
+            <field name="element_type">field</field>
+            <field name="zone">header</field>
+            <field name="pos_x">95</field>
+            <field name="pos_y">19</field>
+            <field name="width">70</field>
+            <field name="height">6</field>
+            <field name="field_name">invoice_date</field>
+            <field name="field_default">[Date]</field>
+            <field name="text_align">right</field>
+            <field name="style_json">{"font-size": "9pt", "color": "#7f8c8d"}</field>
+            <field name="sequence">40</field>
+        </record>
+
+        <!-- Header: Due Date -->
+        <record id="elem_modern_inv_due" model="document.layout.element">
+            <field name="template_id" ref="template_modern_invoice"/>
+            <field name="name">Due Date</field>
+            <field name="element_type">field</field>
+            <field name="zone">header</field>
+            <field name="pos_x">95</field>
+            <field name="pos_y">25</field>
+            <field name="width">70</field>
+            <field name="height">6</field>
+            <field name="field_name">invoice_date_due</field>
+            <field name="field_default">[Due Date]</field>
+            <field name="text_align">right</field>
+            <field name="style_json">{"font-size": "9pt", "color": "#7f8c8d"}</field>
+            <field name="sequence">50</field>
+        </record>
+
+        <!-- Body: Customer Address Block -->
+        <record id="elem_modern_inv_customer" model="document.layout.element">
+            <field name="template_id" ref="template_modern_invoice"/>
+            <field name="name">Customer Name</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="pos_x">0</field>
+            <field name="pos_y">0</field>
+            <field name="width">80</field>
+            <field name="height">6</field>
+            <field name="field_name">partner_id.name</field>
+            <field name="field_default">[Customer Name]</field>
+            <field name="style_json">{"font-size": "11pt", "font-weight": "bold"}</field>
+            <field name="sequence">60</field>
+        </record>
+
+        <record id="elem_modern_inv_street" model="document.layout.element">
+            <field name="template_id" ref="template_modern_invoice"/>
+            <field name="name">Customer Street</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="pos_x">0</field>
+            <field name="pos_y">6</field>
+            <field name="width">80</field>
+            <field name="height">5</field>
+            <field name="field_name">partner_id.street</field>
+            <field name="field_default">[Street]</field>
+            <field name="sequence">70</field>
+        </record>
+
+        <record id="elem_modern_inv_city" model="document.layout.element">
+            <field name="template_id" ref="template_modern_invoice"/>
+            <field name="name">Customer City</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="pos_x">0</field>
+            <field name="pos_y">11</field>
+            <field name="width">80</field>
+            <field name="height">5</field>
+            <field name="field_name">partner_id.city</field>
+            <field name="field_default">[ZIP City]</field>
+            <field name="sequence">80</field>
+        </record>
+
+        <!-- Body: Separator line before table -->
+        <record id="elem_modern_inv_sep1" model="document.layout.element">
+            <field name="template_id" ref="template_modern_invoice"/>
+            <field name="name">Separator</field>
+            <field name="element_type">line</field>
+            <field name="zone">body</field>
+            <field name="pos_x">0</field>
+            <field name="pos_y">22</field>
+            <field name="width">165</field>
+            <field name="height">1</field>
+            <field name="line_color">#2c3e50</field>
+            <field name="line_width">1.5</field>
+            <field name="line_style">solid</field>
+            <field name="sequence">90</field>
+        </record>
+
+        <!-- Body: Line Items Table -->
+        <record id="elem_modern_inv_table" model="document.layout.element">
+            <field name="template_id" ref="template_modern_invoice"/>
+            <field name="name">Invoice Lines</field>
+            <field name="element_type">table</field>
+            <field name="zone">body</field>
+            <field name="pos_x">0</field>
+            <field name="pos_y">25</field>
+            <field name="width">165</field>
+            <field name="height">100</field>
+            <field name="table_show_header">True</field>
+            <field name="table_show_totals">True</field>
+            <field name="table_zebra">False</field>
+            <field name="table_border_style">horizontal</field>
+            <!-- Rechnung (account.move): keine optionalen Posten → "hide" -->
+            <field name="table_optional_mode">hide</field>
+            <field name="table_columns_json">[
+                {"field": "name", "label": "Description", "width": "40%", "align": "left"},
+                {"field": "quantity", "label": "Qty", "width": "10%", "align": "right"},
+                {"field": "price_unit", "label": "Unit Price", "width": "15%", "align": "right", "type": "monetary"},
+                {"field": "discount", "label": "Disc.%", "width": "10%", "align": "right"},
+                {"field": "tax_ids", "label": "Tax", "width": "10%", "align": "right"},
+                {"field": "price_subtotal", "label": "Subtotal", "width": "15%", "align": "right", "type": "monetary"}
+            ]</field>
+            <field name="sequence">100</field>
+        </record>
+
+        <!-- Footer: Company info -->
+        <record id="elem_modern_inv_footer_info" model="document.layout.element">
+            <field name="template_id" ref="template_modern_invoice"/>
+            <field name="name">Footer Company Info</field>
+            <field name="element_type">text</field>
+            <field name="zone">footer</field>
+            <field name="pos_x">0</field>
+            <field name="pos_y">5</field>
+            <field name="width">165</field>
+            <field name="height">10</field>
+            <field name="text_content">&lt;div style="text-align: center; font-size: 8pt; color: #999;"&gt;
+                Thank you for your business! | Payment terms as agreed.
+            &lt;/div&gt;</field>
+            <field name="text_align">center</field>
+            <field name="sequence">200</field>
+        </record>
+
+        <!-- ===== TEMPLATE: Modern Quotation ===== -->
+        <record id="template_modern_quotation" model="document.layout.template">
+            <field name="name">Modern Quotation</field>
+            <field name="layout_style">modern</field>
+            <field name="doc_type">sale.order</field>
+            <field name="paper_format">A4</field>
+            <field name="margin_top">20</field>
+            <field name="margin_bottom">20</field>
+            <field name="margin_left">25</field>
+            <field name="margin_right">20</field>
+            <field name="header_height">40</field>
+            <field name="footer_height">25</field>
+            <field name="style_id" ref="style_modern"/>
+            <field name="is_default">True</field>
+            <field name="description">Clean quotation layout matching the Modern Invoice style.</field>
+        </record>
+
+        <!-- ===== TEMPLATE: Modern Delivery Slip ===== -->
+        <record id="template_modern_delivery" model="document.layout.template">
+            <field name="name">Modern Delivery Slip</field>
+            <field name="layout_style">modern</field>
+            <field name="doc_type">stock.picking</field>
+            <field name="paper_format">A4</field>
+            <field name="margin_top">20</field>
+            <field name="margin_bottom">20</field>
+            <field name="margin_left">25</field>
+            <field name="margin_right">20</field>
+            <field name="header_height">35</field>
+            <field name="footer_height">20</field>
+            <field name="style_id" ref="style_modern"/>
+            <field name="is_default">True</field>
+        </record>
+
+        <!-- ===== TEMPLATE: Modern Purchase Order ===== -->
+        <record id="template_modern_purchase" model="document.layout.template">
+            <field name="name">Modern Purchase Order</field>
+            <field name="layout_style">modern</field>
+            <field name="doc_type">purchase.order</field>
+            <field name="paper_format">A4</field>
+            <field name="margin_top">20</field>
+            <field name="margin_bottom">20</field>
+            <field name="margin_left">25</field>
+            <field name="margin_right">20</field>
+            <field name="header_height">40</field>
+            <field name="footer_height">25</field>
+            <field name="style_id" ref="style_modern"/>
+            <field name="is_default">True</field>
+        </record>
+
+        <!-- ===== DIN 5008 STYLE (Odoo-Look) ===== -->
+        <record id="style_din5008" model="document.layout.style">
+            <field name="name">DIN 5008 Geschäftsbrief</field>
+            <field name="font_family">'Lato', 'Helvetica Neue', Helvetica, Arial, sans-serif</field>
+            <field name="font_size">9</field>
+            <field name="color">#000000</field>
+            <field name="primary_color">#000000</field>
+            <field name="secondary_color">#555555</field>
+            <field name="accent_color">#000000</field>
+            <field name="heading_font">'Lato', 'Helvetica Neue', sans-serif</field>
+            <field name="body_font">'Lato', 'Helvetica Neue', sans-serif</field>
+        </record>
+
+        <!-- ===============================================================
+             TEMPLATE: DIN 5008 Rechnung (Form B, Odoo-Look)
+             DIN-5008-konformer Raster:
+               Rücksendezeile: x=20, y=45, 85×5
+               Anschriftfeld:  x=20, y=50, 85×40
+               Info-Block:     x=125, y=50, 75×40
+               Titel h2:       x=20, y=95, 180×10
+               Positionstab.:  x=20, y=110, 180×auto
+               Falzmarke 1:    y=87, links
+               Lochmarke:      y=148.5, links
+               Falzmarke 2:    y=192, links
+             Body-Zone-Origin = (20, 45) [margin_top=15 + header_height=30]
+             ============================================================ -->
+        <record id="template_din5008_invoice" model="document.layout.template">
+            <field name="name">DIN 5008 Rechnung</field>
+            <field name="layout_style">din5008</field>
+            <field name="doc_type">account.move</field>
+            <field name="paper_format">A4</field>
+            <field name="margin_top">15</field>
+            <field name="margin_bottom">15</field>
+            <field name="margin_left">20</field>
+            <field name="margin_right">10</field>
+            <field name="header_height">30</field>
+            <field name="footer_height">30</field>
+            <field name="style_id" ref="style_din5008"/>
+            <field name="is_default">True</field>
+            <field name="description">DIN 5008 Form B konforme Rechnung im Odoo-Stil. Logo + Firmenkopf oben, Anschriftfeld links (20/50mm), Info-Block rechts (125/50mm), Falzmarken + Lochmarke, h2 Titel, table-borderless Positionstabelle, 4-Spalten-Footer.</field>
+        </record>
+
+
+        <!-- ============================================================ -->
+        <!-- ===== TEMPLATE: DIN 5008 Angebot (sale.order/quotation) ==== -->
+        <!-- ============================================================ -->
+        <record id="template_din5008_quotation" model="document.layout.template">
+            <field name="name">DIN 5008 Angebot</field>
+            <field name="layout_style">din5008</field>
+            <field name="doc_type">sale.order</field>
+            <field name="sale_state_filter">quotation</field>
+            <field name="paper_format">A4</field>
+            <field name="margin_top">10</field>
+            <field name="margin_bottom">15</field>
+            <field name="margin_left">25</field>
+            <field name="margin_right">15</field>
+            <field name="header_height">45</field>
+            <field name="footer_height">28</field>
+            <field name="style_id" ref="style_din5008"/>
+            <field name="is_default">False</field>
+            <field name="description">DIN 5008 Angebot (sale.order im Status Entwurf/Gesendet). Analog zur DIN 5008 Rechnung.</field>
+        </record>
+
+        <record id="din5008_ang_el_logo" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Company Logo</field>
+            <field name="element_type">image</field>
+            <field name="zone">header</field>
+            <field name="sequence">10</field>
+            <field name="pos_x">0</field><field name="pos_y">0</field>
+            <field name="width">55</field><field name="height">20</field>
+            <field name="image_source">company_logo</field>
+            <field name="image_fit">contain</field>
+        </record>
+
+        <record id="din5008_ang_el_company_info" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Company Address</field>
+            <field name="element_type">text</field>
+            <field name="zone">header</field>
+            <field name="sequence">15</field>
+            <field name="pos_x">100</field><field name="pos_y">0</field>
+            <field name="width">70</field><field name="height">20</field>
+            <field name="text_content">&lt;div style="font-size:8pt; color:#555; text-align:right; line-height:1.4;"&gt;[company_name]&lt;br/&gt;[street]&lt;br/&gt;[zip] [city]&lt;br/&gt;Tel: [phone]&lt;/div&gt;</field>
+            <field name="text_align">right</field>
+        </record>
+
+        <record id="din5008_ang_el_header_line" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Header Line</field>
+            <field name="element_type">line</field>
+            <field name="zone">header</field>
+            <field name="sequence">20</field>
+            <field name="pos_x">0</field><field name="pos_y">22</field>
+            <field name="width">170</field><field name="height">0.5</field>
+            <field name="line_color">#000000</field><field name="line_width">0.5</field>
+        </record>
+
+        <record id="din5008_ang_el_returnaddr" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Rücksendezeile</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">20</field>
+            <field name="pos_x">0</field><field name="pos_y">0</field>
+            <field name="width">85</field><field name="height">4</field>
+            <field name="field_name">company_id.name</field>
+            <field name="field_default">[Firma · Straße · PLZ Ort]</field>
+            <field name="style_json">{"font-size": "7pt", "color": "#555", "text-decoration": "underline"}</field>
+        </record>
+
+        <record id="din5008_ang_el_partner_name" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Kundenname</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">25</field>
+            <field name="pos_x">0</field><field name="pos_y">6</field>
+            <field name="width">85</field><field name="height">5</field>
+            <field name="field_name">partner_id.name</field>
+            <field name="field_default">[Kundenname]</field>
+            <field name="style_json">{"font-size": "10pt"}</field>
+        </record>
+
+        <record id="din5008_ang_el_partner_street" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Kundenstraße</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">26</field>
+            <field name="pos_x">0</field><field name="pos_y">12</field>
+            <field name="width">85</field><field name="height">4</field>
+            <field name="field_name">partner_id.street</field>
+            <field name="field_default">[Straße]</field>
+        </record>
+
+        <record id="din5008_ang_el_partner_city" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Kunden PLZ/Ort</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">27</field>
+            <field name="pos_x">0</field><field name="pos_y">17</field>
+            <field name="width">85</field><field name="height">4</field>
+            <field name="field_name">partner_id.zip</field>
+            <field name="field_default">[PLZ Ort]</field>
+        </record>
+
+        <record id="din5008_ang_el_partner_country" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Kundenland</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">28</field>
+            <field name="pos_x">0</field><field name="pos_y">22</field>
+            <field name="width">85</field><field name="height">4</field>
+            <field name="field_name">partner_id.country_id.name</field>
+            <field name="field_default">[Land]</field>
+        </record>
+
+        <record id="din5008_ang_el_doc_title" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Dokumenttitel</field>
+            <field name="element_type">text</field>
+            <field name="zone">body</field>
+            <field name="sequence">40</field>
+            <field name="pos_x">105</field><field name="pos_y">0</field>
+            <field name="width">65</field><field name="height">8</field>
+            <field name="text_content">&lt;strong style="font-size: 16pt;"&gt;Angebot&lt;/strong&gt;</field>
+            <field name="text_align">left</field>
+        </record>
+
+        <record id="din5008_ang_el_info_nr_label" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Angebotsnr. Label</field>
+            <field name="element_type">text</field>
+            <field name="zone">body</field>
+            <field name="sequence">41</field>
+            <field name="pos_x">105</field><field name="pos_y">10</field>
+            <field name="width">30</field><field name="height">4</field>
+            <field name="text_content">&lt;span style="font-size:9pt; color:#555;"&gt;Angebots-Nr.:&lt;/span&gt;</field>
+        </record>
+
+        <record id="din5008_ang_el_info_nr" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Angebotsnr.</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">42</field>
+            <field name="pos_x">140</field><field name="pos_y">10</field>
+            <field name="width">30</field><field name="height">4</field>
+            <field name="field_name">name</field>
+            <field name="field_default">[ANG/2026/0001]</field>
+            <field name="style_json">{"font-size": "9pt"}</field>
+        </record>
+
+        <record id="din5008_ang_el_info_date_label" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Datum Label</field>
+            <field name="element_type">text</field>
+            <field name="zone">body</field>
+            <field name="sequence">43</field>
+            <field name="pos_x">105</field><field name="pos_y">15</field>
+            <field name="width">30</field><field name="height">4</field>
+            <field name="text_content">&lt;span style="font-size:9pt; color:#555;"&gt;Datum:&lt;/span&gt;</field>
+        </record>
+
+        <record id="din5008_ang_el_info_date" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Angebotsdatum</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">44</field>
+            <field name="pos_x">140</field><field name="pos_y">15</field>
+            <field name="width">30</field><field name="height">4</field>
+            <field name="field_name">date_order</field>
+            <field name="field_default">[Datum]</field>
+            <field name="style_json">{"font-size": "9pt"}</field>
+        </record>
+
+        <record id="din5008_ang_el_info_due_label" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Gültig Label</field>
+            <field name="element_type">text</field>
+            <field name="zone">body</field>
+            <field name="sequence">45</field>
+            <field name="pos_x">105</field><field name="pos_y">20</field>
+            <field name="width">30</field><field name="height">4</field>
+            <field name="text_content">&lt;span style="font-size:9pt; color:#555;"&gt;Gültig bis:&lt;/span&gt;</field>
+        </record>
+
+        <record id="din5008_ang_el_info_due" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Gültigkeitsdatum</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">46</field>
+            <field name="pos_x">140</field><field name="pos_y">20</field>
+            <field name="width">30</field><field name="height">4</field>
+            <field name="field_name">validity_date</field>
+            <field name="field_default">[Gültig bis]</field>
+            <field name="style_json">{"font-size": "9pt"}</field>
+        </record>
+
+        <record id="din5008_ang_el_info_contact_label" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Sachbearbeiter Label</field>
+            <field name="element_type">text</field>
+            <field name="zone">body</field>
+            <field name="sequence">47</field>
+            <field name="pos_x">105</field><field name="pos_y">25</field>
+            <field name="width">30</field><field name="height">4</field>
+            <field name="text_content">&lt;span style="font-size:9pt; color:#555;"&gt;Sachbearbeiter:&lt;/span&gt;</field>
+        </record>
+
+        <record id="din5008_ang_el_info_contact" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Sachbearbeiter</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">48</field>
+            <field name="pos_x">140</field><field name="pos_y">25</field>
+            <field name="width">30</field><field name="height">4</field>
+            <field name="field_name">user_id.name</field>
+            <field name="field_default">[Sachbearbeiter]</field>
+            <field name="style_json">{"font-size": "9pt"}</field>
+        </record>
+
+        <record id="din5008_ang_el_subject" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Betreffzeile</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">55</field>
+            <field name="pos_x">0</field><field name="pos_y">34</field>
+            <field name="width">95</field><field name="height">6</field>
+            <field name="field_name">client_order_ref</field>
+            <field name="field_default">[Ihre Anfrage / Referenz]</field>
+            <field name="style_json">{"font-size": "10pt", "font-weight": "bold"}</field>
+        </record>
+
+        <record id="din5008_ang_el_table" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Positionstabelle</field>
+            <field name="element_type">table</field>
+            <field name="zone">body</field>
+            <field name="sequence">60</field>
+            <field name="pos_x">0</field><field name="pos_y">44</field>
+            <field name="width">170</field><field name="height">120</field>
+            <field name="table_show_header">True</field>
+            <field name="table_show_totals">True</field>
+            <field name="table_zebra">False</field>
+            <field name="table_border_style">horizontal</field>
+            <field name="table_columns_json">[
+                {"field": "sequence", "label": "Pos.", "width": "6%", "align": "center"},
+                {"field": "name", "label": "Bezeichnung", "width": "36%", "align": "left"},
+                {"field": "product_uom_qty", "label": "Menge", "width": "8%", "align": "right"},
+                {"field": "product_uom.name", "label": "Einheit", "width": "8%", "align": "center"},
+                {"field": "price_unit", "label": "Einzelpreis", "width": "14%", "align": "right", "type": "monetary"},
+                {"field": "discount", "label": "Rabatt", "width": "8%", "align": "right"},
+                {"field": "tax_id", "label": "USt.", "width": "8%", "align": "right"},
+                {"field": "price_subtotal", "label": "Betrag", "width": "12%", "align": "right", "type": "monetary"}
+            ]</field>
+            <field name="table_rows_per_page">22</field>
+            <field name="table_optional_mode">separate</field>
+        </record>
+
+        <record id="din5008_ang_el_thanks" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Dankestext</field>
+            <field name="element_type">text</field>
+            <field name="zone">body</field>
+            <field name="sequence">70</field>
+            <field name="pos_x">0</field><field name="pos_y">145</field>
+            <field name="width">110</field><field name="height">14</field>
+            <field name="anchor_mode">after_table</field>
+            <field name="text_content">&lt;div style="font-size:9pt; line-height:1.6;"&gt;Vielen Dank für Ihre Anfrage. Wir hoffen, Ihnen mit diesem Angebot entgegenzukommen.&lt;br/&gt;&lt;br/&gt;Mit freundlichen Grüßen&lt;/div&gt;</field>
+        </record>
+
+        <record id="din5008_ang_el_footer_line" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Footer Linie</field>
+            <field name="element_type">line</field>
+            <field name="zone">footer</field>
+            <field name="sequence">5</field>
+            <field name="pos_x">0</field><field name="pos_y">0</field>
+            <field name="width">170</field><field name="height">0.5</field>
+            <field name="line_color">#000000</field><field name="line_width">0.5</field>
+        </record>
+
+        <record id="din5008_ang_el_footer_col1" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Footer Firma</field>
+            <field name="element_type">text</field>
+            <field name="zone">footer</field>
+            <field name="sequence">10</field>
+            <field name="pos_x">0</field><field name="pos_y">2</field>
+            <field name="width">40</field><field name="height">18</field>
+            <field name="text_content">&lt;div style="font-size:7pt; color:#555; line-height:1.4;"&gt;&lt;strong&gt;Firma&lt;/strong&gt;&lt;br/&gt;[company_name]&lt;br/&gt;[street]&lt;br/&gt;[zip] [city]&lt;/div&gt;</field>
+        </record>
+
+        <record id="din5008_ang_el_footer_col2" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Footer Kontakt</field>
+            <field name="element_type">text</field>
+            <field name="zone">footer</field>
+            <field name="sequence">11</field>
+            <field name="pos_x">42</field><field name="pos_y">2</field>
+            <field name="width">40</field><field name="height">18</field>
+            <field name="text_content">&lt;div style="font-size:7pt; color:#555; line-height:1.4;"&gt;&lt;strong&gt;Kontakt&lt;/strong&gt;&lt;br/&gt;Tel: [phone]&lt;br/&gt;Fax: [fax]&lt;br/&gt;[email]&lt;br/&gt;[website]&lt;/div&gt;</field>
+        </record>
+
+        <record id="din5008_ang_el_footer_col3" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Footer Bank</field>
+            <field name="element_type">text</field>
+            <field name="zone">footer</field>
+            <field name="sequence">12</field>
+            <field name="pos_x">84</field><field name="pos_y">2</field>
+            <field name="width">42</field><field name="height">18</field>
+            <field name="text_content">&lt;div style="font-size:7pt; color:#555; line-height:1.4;"&gt;&lt;strong&gt;Bankverbindung&lt;/strong&gt;&lt;br/&gt;[bank_name]&lt;br/&gt;IBAN: [iban]&lt;br/&gt;BIC: [bic]&lt;/div&gt;</field>
+        </record>
+
+        <record id="din5008_ang_el_footer_col4" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Footer Steuern</field>
+            <field name="element_type">text</field>
+            <field name="zone">footer</field>
+            <field name="sequence">13</field>
+            <field name="pos_x">128</field><field name="pos_y">2</field>
+            <field name="width">42</field><field name="height">18</field>
+            <field name="text_content">&lt;div style="font-size:7pt; color:#555; line-height:1.4;"&gt;&lt;strong&gt;Steuern&lt;/strong&gt;&lt;br/&gt;USt-ID: [vat]&lt;br/&gt;St.-Nr.: [stnr]&lt;br/&gt;[court]&lt;br/&gt;GF: [director]&lt;/div&gt;</field>
+        </record>
+
+        <record id="din5008_ang_el_footer_page" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Seitenzahl</field>
+            <field name="element_type">text</field>
+            <field name="zone">footer</field>
+            <field name="sequence">20</field>
+            <field name="pos_x">130</field><field name="pos_y">22</field>
+            <field name="width">40</field><field name="height">4</field>
+            <field name="text_content">&lt;span style="font-size:7pt; color:#999;"&gt;Seite [page] von [pages]&lt;/span&gt;</field>
+            <field name="text_align">right</field>
+        </record>
+
+        <record id="din5008_ang_el_fold1" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Faltmarke 1</field>
+            <field name="element_type">line</field>
+            <field name="zone">body</field>
+            <field name="sequence">5</field>
+            <field name="pos_x">-25</field><field name="pos_y">42</field>
+            <field name="width">4</field><field name="height">0.5</field>
+            <field name="line_color">#aaaaaa</field><field name="line_width">0.3</field>
+        </record>
+
+        <record id="din5008_ang_el_punch" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Lochmarke</field>
+            <field name="element_type">line</field>
+            <field name="zone">body</field>
+            <field name="sequence">6</field>
+            <field name="pos_x">-25</field><field name="pos_y">103.5</field>
+            <field name="width">6</field><field name="height">0.5</field>
+            <field name="line_color">#aaaaaa</field><field name="line_width">0.3</field>
+        </record>
+
+        <record id="din5008_ang_el_fold2" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_quotation"/>
+            <field name="name">Faltmarke 2</field>
+            <field name="element_type">line</field>
+            <field name="zone">body</field>
+            <field name="sequence">7</field>
+            <field name="pos_x">-25</field><field name="pos_y">147</field>
+            <field name="width">4</field><field name="height">0.5</field>
+            <field name="line_color">#aaaaaa</field><field name="line_width">0.3</field>
+        </record>
+
+        <!-- ============================================================ -->
+        <!-- ===== TEMPLATE: DIN 5008 Auftragsbestätigung ============== -->
+        <!-- ============================================================ -->
+        <record id="template_din5008_confirmed" model="document.layout.template">
+            <field name="name">DIN 5008 Auftragsbestätigung</field>
+            <field name="layout_style">din5008</field>
+            <field name="doc_type">sale.order</field>
+            <field name="sale_state_filter">confirmed</field>
+            <field name="paper_format">A4</field>
+            <field name="margin_top">10</field>
+            <field name="margin_bottom">15</field>
+            <field name="margin_left">25</field>
+            <field name="margin_right">15</field>
+            <field name="header_height">45</field>
+            <field name="footer_height">28</field>
+            <field name="style_id" ref="style_din5008"/>
+            <field name="is_default">False</field>
+            <field name="description">DIN 5008 Auftragsbestätigung (sale.order im Status Auftrag/Erledigt). Analog zur DIN 5008 Rechnung.</field>
+        </record>
+
+        <record id="din5008_auf_el_logo" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Company Logo</field>
+            <field name="element_type">image</field>
+            <field name="zone">header</field>
+            <field name="sequence">10</field>
+            <field name="pos_x">0</field><field name="pos_y">0</field>
+            <field name="width">55</field><field name="height">20</field>
+            <field name="image_source">company_logo</field>
+            <field name="image_fit">contain</field>
+        </record>
+
+        <record id="din5008_auf_el_company_info" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Company Address</field>
+            <field name="element_type">text</field>
+            <field name="zone">header</field>
+            <field name="sequence">15</field>
+            <field name="pos_x">100</field><field name="pos_y">0</field>
+            <field name="width">70</field><field name="height">20</field>
+            <field name="text_content">&lt;div style="font-size:8pt; color:#555; text-align:right; line-height:1.4;"&gt;[company_name]&lt;br/&gt;[street]&lt;br/&gt;[zip] [city]&lt;br/&gt;Tel: [phone]&lt;/div&gt;</field>
+            <field name="text_align">right</field>
+        </record>
+
+        <record id="din5008_auf_el_header_line" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Header Line</field>
+            <field name="element_type">line</field>
+            <field name="zone">header</field>
+            <field name="sequence">20</field>
+            <field name="pos_x">0</field><field name="pos_y">22</field>
+            <field name="width">170</field><field name="height">0.5</field>
+            <field name="line_color">#000000</field><field name="line_width">0.5</field>
+        </record>
+
+        <record id="din5008_auf_el_returnaddr" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Rücksendezeile</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">20</field>
+            <field name="pos_x">0</field><field name="pos_y">0</field>
+            <field name="width">85</field><field name="height">4</field>
+            <field name="field_name">company_id.name</field>
+            <field name="field_default">[Firma · Straße · PLZ Ort]</field>
+            <field name="style_json">{"font-size": "7pt", "color": "#555", "text-decoration": "underline"}</field>
+        </record>
+
+        <record id="din5008_auf_el_partner_name" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Kundenname</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">25</field>
+            <field name="pos_x">0</field><field name="pos_y">6</field>
+            <field name="width">85</field><field name="height">5</field>
+            <field name="field_name">partner_id.name</field>
+            <field name="field_default">[Kundenname]</field>
+            <field name="style_json">{"font-size": "10pt"}</field>
+        </record>
+
+        <record id="din5008_auf_el_partner_street" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Kundenstraße</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">26</field>
+            <field name="pos_x">0</field><field name="pos_y">12</field>
+            <field name="width">85</field><field name="height">4</field>
+            <field name="field_name">partner_id.street</field>
+            <field name="field_default">[Straße]</field>
+        </record>
+
+        <record id="din5008_auf_el_partner_city" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Kunden PLZ/Ort</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">27</field>
+            <field name="pos_x">0</field><field name="pos_y">17</field>
+            <field name="width">85</field><field name="height">4</field>
+            <field name="field_name">partner_id.zip</field>
+            <field name="field_default">[PLZ Ort]</field>
+        </record>
+
+        <record id="din5008_auf_el_partner_country" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Kundenland</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">28</field>
+            <field name="pos_x">0</field><field name="pos_y">22</field>
+            <field name="width">85</field><field name="height">4</field>
+            <field name="field_name">partner_id.country_id.name</field>
+            <field name="field_default">[Land]</field>
+        </record>
+
+        <record id="din5008_auf_el_doc_title" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Dokumenttitel</field>
+            <field name="element_type">text</field>
+            <field name="zone">body</field>
+            <field name="sequence">40</field>
+            <field name="pos_x">105</field><field name="pos_y">0</field>
+            <field name="width">65</field><field name="height">8</field>
+            <field name="text_content">&lt;strong style="font-size: 16pt;"&gt;Auftragsbestätigung&lt;/strong&gt;</field>
+            <field name="text_align">left</field>
+        </record>
+
+        <record id="din5008_auf_el_info_nr_label" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Auftragsnr. Label</field>
+            <field name="element_type">text</field>
+            <field name="zone">body</field>
+            <field name="sequence">41</field>
+            <field name="pos_x">105</field><field name="pos_y">10</field>
+            <field name="width">30</field><field name="height">4</field>
+            <field name="text_content">&lt;span style="font-size:9pt; color:#555;"&gt;Auftrags-Nr.:&lt;/span&gt;</field>
+        </record>
+
+        <record id="din5008_auf_el_info_nr" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Auftragsnr.</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">42</field>
+            <field name="pos_x">140</field><field name="pos_y">10</field>
+            <field name="width">30</field><field name="height">4</field>
+            <field name="field_name">name</field>
+            <field name="field_default">[AUF/2026/0001]</field>
+            <field name="style_json">{"font-size": "9pt"}</field>
+        </record>
+
+        <record id="din5008_auf_el_info_date_label" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Datum Label</field>
+            <field name="element_type">text</field>
+            <field name="zone">body</field>
+            <field name="sequence">43</field>
+            <field name="pos_x">105</field><field name="pos_y">15</field>
+            <field name="width">30</field><field name="height">4</field>
+            <field name="text_content">&lt;span style="font-size:9pt; color:#555;"&gt;Datum:&lt;/span&gt;</field>
+        </record>
+
+        <record id="din5008_auf_el_info_date" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Auftragsdatum</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">44</field>
+            <field name="pos_x">140</field><field name="pos_y">15</field>
+            <field name="width">30</field><field name="height">4</field>
+            <field name="field_name">date_order</field>
+            <field name="field_default">[Datum]</field>
+            <field name="style_json">{"font-size": "9pt"}</field>
+        </record>
+
+        <record id="din5008_auf_el_info_delivery_label" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Lieferdatum Label</field>
+            <field name="element_type">text</field>
+            <field name="zone">body</field>
+            <field name="sequence">45</field>
+            <field name="pos_x">105</field><field name="pos_y">20</field>
+            <field name="width">30</field><field name="height">4</field>
+            <field name="text_content">&lt;span style="font-size:9pt; color:#555;"&gt;Lieferdatum:&lt;/span&gt;</field>
+        </record>
+
+        <record id="din5008_auf_el_info_delivery" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Lieferdatum</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">46</field>
+            <field name="pos_x">140</field><field name="pos_y">20</field>
+            <field name="width">30</field><field name="height">4</field>
+            <field name="field_name">commitment_date</field>
+            <field name="field_default">[Liefertermin]</field>
+            <field name="style_json">{"font-size": "9pt"}</field>
+        </record>
+
+        <record id="din5008_auf_el_info_contact_label" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Sachbearbeiter Label</field>
+            <field name="element_type">text</field>
+            <field name="zone">body</field>
+            <field name="sequence">47</field>
+            <field name="pos_x">105</field><field name="pos_y">25</field>
+            <field name="width">30</field><field name="height">4</field>
+            <field name="text_content">&lt;span style="font-size:9pt; color:#555;"&gt;Sachbearbeiter:&lt;/span&gt;</field>
+        </record>
+
+        <record id="din5008_auf_el_info_contact" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Sachbearbeiter</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">48</field>
+            <field name="pos_x">140</field><field name="pos_y">25</field>
+            <field name="width">30</field><field name="height">4</field>
+            <field name="field_name">user_id.name</field>
+            <field name="field_default">[Sachbearbeiter]</field>
+            <field name="style_json">{"font-size": "9pt"}</field>
+        </record>
+
+        <record id="din5008_auf_el_subject" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Betreffzeile</field>
+            <field name="element_type">field</field>
+            <field name="zone">body</field>
+            <field name="sequence">55</field>
+            <field name="pos_x">0</field><field name="pos_y">34</field>
+            <field name="width">95</field><field name="height">6</field>
+            <field name="field_name">client_order_ref</field>
+            <field name="field_default">[Ihre Bestellung / Referenz]</field>
+            <field name="style_json">{"font-size": "10pt", "font-weight": "bold"}</field>
+        </record>
+
+        <record id="din5008_auf_el_table" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Positionstabelle</field>
+            <field name="element_type">table</field>
+            <field name="zone">body</field>
+            <field name="sequence">60</field>
+            <field name="pos_x">0</field><field name="pos_y">44</field>
+            <field name="width">170</field><field name="height">120</field>
+            <field name="table_show_header">True</field>
+            <field name="table_show_totals">True</field>
+            <field name="table_zebra">False</field>
+            <field name="table_border_style">horizontal</field>
+            <field name="table_columns_json">[
+                {"field": "sequence", "label": "Pos.", "width": "6%", "align": "center"},
+                {"field": "name", "label": "Bezeichnung", "width": "36%", "align": "left"},
+                {"field": "product_uom_qty", "label": "Menge", "width": "8%", "align": "right"},
+                {"field": "product_uom.name", "label": "Einheit", "width": "8%", "align": "center"},
+                {"field": "price_unit", "label": "Einzelpreis", "width": "14%", "align": "right", "type": "monetary"},
+                {"field": "discount", "label": "Rabatt", "width": "8%", "align": "right"},
+                {"field": "tax_id", "label": "USt.", "width": "8%", "align": "right"},
+                {"field": "price_subtotal", "label": "Betrag", "width": "12%", "align": "right", "type": "monetary"}
+            ]</field>
+            <field name="table_rows_per_page">22</field>
+            <field name="table_optional_mode">separate</field>
+        </record>
+
+        <record id="din5008_auf_el_thanks" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Dankestext</field>
+            <field name="element_type">text</field>
+            <field name="zone">body</field>
+            <field name="sequence">70</field>
+            <field name="pos_x">0</field><field name="pos_y">145</field>
+            <field name="width">110</field><field name="height">14</field>
+            <field name="anchor_mode">after_table</field>
+            <field name="text_content">&lt;div style="font-size:9pt; line-height:1.6;"&gt;Vielen Dank für Ihren Auftrag. Wir bestätigen hiermit den Auftrag zu den oben genannten Bedingungen.&lt;br/&gt;&lt;br/&gt;Mit freundlichen Grüßen&lt;/div&gt;</field>
+        </record>
+
+        <record id="din5008_auf_el_footer_line" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Footer Linie</field>
+            <field name="element_type">line</field>
+            <field name="zone">footer</field>
+            <field name="sequence">5</field>
+            <field name="pos_x">0</field><field name="pos_y">0</field>
+            <field name="width">170</field><field name="height">0.5</field>
+            <field name="line_color">#000000</field><field name="line_width">0.5</field>
+        </record>
+
+        <record id="din5008_auf_el_footer_col1" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Footer Firma</field>
+            <field name="element_type">text</field>
+            <field name="zone">footer</field>
+            <field name="sequence">10</field>
+            <field name="pos_x">0</field><field name="pos_y">2</field>
+            <field name="width">40</field><field name="height">18</field>
+            <field name="text_content">&lt;div style="font-size:7pt; color:#555; line-height:1.4;"&gt;&lt;strong&gt;Firma&lt;/strong&gt;&lt;br/&gt;[company_name]&lt;br/&gt;[street]&lt;br/&gt;[zip] [city]&lt;/div&gt;</field>
+        </record>
+
+        <record id="din5008_auf_el_footer_col2" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Footer Kontakt</field>
+            <field name="element_type">text</field>
+            <field name="zone">footer</field>
+            <field name="sequence">11</field>
+            <field name="pos_x">42</field><field name="pos_y">2</field>
+            <field name="width">40</field><field name="height">18</field>
+            <field name="text_content">&lt;div style="font-size:7pt; color:#555; line-height:1.4;"&gt;&lt;strong&gt;Kontakt&lt;/strong&gt;&lt;br/&gt;Tel: [phone]&lt;br/&gt;Fax: [fax]&lt;br/&gt;[email]&lt;br/&gt;[website]&lt;/div&gt;</field>
+        </record>
+
+        <record id="din5008_auf_el_footer_col3" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Footer Bank</field>
+            <field name="element_type">text</field>
+            <field name="zone">footer</field>
+            <field name="sequence">12</field>
+            <field name="pos_x">84</field><field name="pos_y">2</field>
+            <field name="width">42</field><field name="height">18</field>
+            <field name="text_content">&lt;div style="font-size:7pt; color:#555; line-height:1.4;"&gt;&lt;strong&gt;Bankverbindung&lt;/strong&gt;&lt;br/&gt;[bank_name]&lt;br/&gt;IBAN: [iban]&lt;br/&gt;BIC: [bic]&lt;/div&gt;</field>
+        </record>
+
+        <record id="din5008_auf_el_footer_col4" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Footer Steuern</field>
+            <field name="element_type">text</field>
+            <field name="zone">footer</field>
+            <field name="sequence">13</field>
+            <field name="pos_x">128</field><field name="pos_y">2</field>
+            <field name="width">42</field><field name="height">18</field>
+            <field name="text_content">&lt;div style="font-size:7pt; color:#555; line-height:1.4;"&gt;&lt;strong&gt;Steuern&lt;/strong&gt;&lt;br/&gt;USt-ID: [vat]&lt;br/&gt;St.-Nr.: [stnr]&lt;br/&gt;[court]&lt;br/&gt;GF: [director]&lt;/div&gt;</field>
+        </record>
+
+        <record id="din5008_auf_el_footer_page" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Seitenzahl</field>
+            <field name="element_type">text</field>
+            <field name="zone">footer</field>
+            <field name="sequence">20</field>
+            <field name="pos_x">130</field><field name="pos_y">22</field>
+            <field name="width">40</field><field name="height">4</field>
+            <field name="text_content">&lt;span style="font-size:7pt; color:#999;"&gt;Seite [page] von [pages]&lt;/span&gt;</field>
+            <field name="text_align">right</field>
+        </record>
+
+        <record id="din5008_auf_el_fold1" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Faltmarke 1</field>
+            <field name="element_type">line</field>
+            <field name="zone">body</field>
+            <field name="sequence">5</field>
+            <field name="pos_x">-25</field><field name="pos_y">42</field>
+            <field name="width">4</field><field name="height">0.5</field>
+            <field name="line_color">#aaaaaa</field><field name="line_width">0.3</field>
+        </record>
+
+        <record id="din5008_auf_el_punch" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Lochmarke</field>
+            <field name="element_type">line</field>
+            <field name="zone">body</field>
+            <field name="sequence">6</field>
+            <field name="pos_x">-25</field><field name="pos_y">103.5</field>
+            <field name="width">6</field><field name="height">0.5</field>
+            <field name="line_color">#aaaaaa</field><field name="line_width">0.3</field>
+        </record>
+
+        <record id="din5008_auf_el_fold2" model="document.layout.element">
+            <field name="template_id" ref="template_din5008_confirmed"/>
+            <field name="name">Faltmarke 2</field>
+            <field name="element_type">line</field>
+            <field name="zone">body</field>
+            <field name="sequence">7</field>
+            <field name="pos_x">-25</field><field name="pos_y">147</field>
+            <field name="width">4</field><field name="height">0.5</field>
+            <field name="line_color">#aaaaaa</field><field name="line_width">0.3</field>
+        </record>
+
+    </data>
+</odoo>

@@ -1,0 +1,18 @@
+[options]
+addons_path = /mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons
+data_dir = /var/lib/odoo
+admin_passwd = insert-secure-admin-password-here
+db_host = db
+db_port = 5432
+db_user = odoo
+db_password = insert-secure-password-here
+; Bei Betrieb hinter Reverse Proxy:
+proxy_mode = True
+; Performance Tuning (Beispielwerte, nach Bedarf anpassen)
+workers = 2
+max_cron_threads = 1
+limit_memory_hard = 2684354560
+limit_memory_soft = 2147483648
+limit_request = 819200000
+limit_time_cpu = 60000000
+limit_time_real = 120000000

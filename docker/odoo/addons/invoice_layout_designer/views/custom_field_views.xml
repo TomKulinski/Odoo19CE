@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ===== LIST VIEW ===== -->
+    <record id="view_custom_field_definition_list" model="ir.ui.view">
+        <field name="name">custom.field.definition.list</field>
+        <field name="model">custom.field.definition</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="technical_name"/>
+                <field name="target_model"/>
+                <field name="field_type"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'active'"
+                       decoration-warning="state == 'draft'"
+                       decoration-danger="state == 'error'"/>
+                <field name="show_on_invoice" widget="boolean_toggle"/>
+                <field name="show_on_sale" widget="boolean_toggle"/>
+                <field name="show_on_picking" widget="boolean_toggle"/>
+                <field name="show_on_purchase" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ===== FORM VIEW ===== -->
+    <record id="view_custom_field_definition_form" model="ir.ui.view">
+        <field name="name">custom.field.definition.form</field>
+        <field name="model">custom.field.definition</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_create_field"
+                            string="Create Field"
+                            type="object"
+                            class="btn-primary"
+                            icon="fa-magic"
+                            invisible="state == 'active'"/>
+                    <button name="action_delete_field"
+                            string="Delete Field"
+                            type="object"
+                            class="btn-danger"
+                            icon="fa-trash"
+                            invisible="state != 'active'"
+                            confirm="This will remove the field from the model. Data in this field will be lost. Continue?"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="alert alert-danger" role="alert"
+                         invisible="state != 'error'">
+                        <strong>Error creating field:</strong>
+                        <field name="error_message" nolabel="1"/>
+                    </div>
+                    <div class="alert alert-success" role="alert"
+                         invisible="state != 'active'">
+                        <strong>Field is active!</strong> It appears on the
+                        <field name="target_model_name" nolabel="1" class="oe_inline"/> form and is available in layout templates.
+                    </div>
+
+                    <group string="Field Definition">
+                        <group>
+                            <field name="name" placeholder="e.g. Shipment Incoterm"/>
+                            <field name="technical_name" readonly="state == 'active'"/>
+                            <field name="target_model" readonly="state == 'active'"/>
+                            <field name="field_type" readonly="state == 'active'"/>
+                        </group>
+                        <group>
+                            <field name="default_value"/>
+                            <field name="is_required"/>
+                            <field name="is_readonly"/>
+                            <field name="company_id" optional="hide"/>
+                        </group>
+                    </group>
+
+                    <!-- Selection Options -->
+                    <group string="Dropdown Options"
+                           invisible="field_type != 'selection'">
+                        <field name="selection_options" nolabel="1"
+                               placeholder="Enter one option per line:&#10;EXW&#10;FOB&#10;CIF&#10;DDP"
+                               colspan="2"/>
+                    </group>
+
+                    <!-- Many2one Config -->
+                    <group string="Linked Record"
+                           invisible="field_type != 'many2one'">
+                        <field name="many2one_model_id"
+                               placeholder="Select a model (e.g. Country, Incoterms...)"/>
+                        <field name="many2one_model" readonly="1"/>
+                    </group>
+
+                    <!-- View Placement -->
+                    <group string="Form View Placement">
+                        <field name="view_placement" widget="radio"/>
+                        <field name="custom_tab_name"
+                               invisible="view_placement != 'new_tab'"/>
+                    </group>
+
+                    <!-- Document Type Visibility -->
+                    <group string="Show on Print Layouts">
+                        <group>
+                            <field name="show_on_invoice"/>
+                            <field name="show_on_sale"/>
+                        </group>
+                        <group>
+                            <field name="show_on_picking"/>
+                            <field name="show_on_purchase"/>
+                        </group>
+                    </group>
+
+                    <!-- Technical Info -->
+                    <group string="Technical" invisible="not ir_model_field_id">
+                        <field name="ir_model_field_id" readonly="1"/>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ===== SEARCH VIEW ===== -->
+    <record id="view_custom_field_definition_search" model="ir.ui.view">
+        <field name="name">custom.field.definition.search</field>
+        <field name="model">custom.field.definition</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="target_model"/>
+                <field name="field_type"/>
+                <filter name="filter_active" string="Active Fields"
+                        domain="[('state', '=', 'active')]"/>
+                <filter name="filter_draft" string="Draft"
+                        domain="[('state', '=', 'draft')]"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- ===== ACTION ===== -->
+    <record id="action_custom_field_definition" model="ir.actions.act_window">
+        <field name="name">Custom Fields</field>
+        <field name="res_model">custom.field.definition</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_custom_field_definition_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first custom field!
+            </p>
+            <p>
+                Add custom fields to Contacts, Products, Invoices, and more
+                — no coding required. Fields are instantly available in your
+                document layouts.
+            </p>
+        </field>
+    </record>
+</odoo>

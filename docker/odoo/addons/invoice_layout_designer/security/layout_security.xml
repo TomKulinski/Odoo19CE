@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="group_layout_user" model="res.groups">
+        <field name="name">Layout User</field>
+        <field name="comment">Can use layout templates to print documents.</field>
+    </record>
+    <record id="group_layout_designer" model="res.groups">
+        <field name="name">Layout Designer</field>
+        <field name="implied_ids" eval="[(4, ref('group_layout_user'))]"/>
+        <field name="comment">Can create and edit layout templates.</field>
+    </record>
+    <record id="group_layout_admin" model="res.groups">
+        <field name="name">Layout Administrator</field>
+        <field name="implied_ids" eval="[(4, ref('group_layout_designer'))]"/>
+        <field name="comment">Full access to all layout templates and settings.</field>
+    </record>
+
+    <!-- Auto-add all internal users to Layout User (read-only) -->
+    <record id="base.group_user" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('group_layout_user'))]"/>
+    </record>
+
+    <!-- Auto-add Billing/Invoicing managers to Layout Designer -->
+    <record id="account.group_account_manager" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('group_layout_designer'))]"/>
+    </record>
+
+    <!-- Auto-add Settings/Admin users to Layout Admin -->
+    <record id="base.group_system" model="res.groups">
+        <field name="implied_ids" eval="[(4, ref('group_layout_admin'))]"/>
+    </record>
+
+    <record id="rule_template_company" model="ir.rule">
+        <field name="name">Layout Template: Company</field>
+        <field name="model_id" ref="model_document_layout_template"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('group_layout_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_template_designer" model="ir.rule">
+        <field name="name">Layout Template: Designer</field>
+        <field name="model_id" ref="model_document_layout_template"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('group_layout_designer'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+    <record id="rule_template_admin" model="ir.rule">
+        <field name="name">Layout Template: Admin</field>
+        <field name="model_id" ref="model_document_layout_template"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_layout_admin'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+    <record id="rule_element_company" model="ir.rule">
+        <field name="name">Layout Element: Company</field>
+        <field name="model_id" ref="model_document_layout_element"/>
+        <field name="domain_force">[('template_id.company_id', 'in', company_ids)]</field>
+        <field name="groups" eval="[(4, ref('group_layout_user'))]"/>
+    </record>
+</odoo>

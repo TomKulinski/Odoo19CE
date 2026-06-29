@@ -1,0 +1,74 @@
+name: odoo19-dev
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: odoo-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-odoo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?bitte in .env setzen}
+    # Lokale Dev-Beschleunigung: Durability egal, dafür deutlich schneller
+    # bei Modul-Installs/Tests. NICHT in Prod verwenden.
+    command: >
+      postgres -c fsync=off
+               -c synchronous_commit=off
+               -c full_page_writes=off
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-odoo} -d postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  odoo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: odoo19-dev-weasyprint:latest
+    container_name: odoo-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      HOST: db
+      USER: ${POSTGRES_USER:-odoo}
+      PASSWORD: ${POSTGRES_PASSWORD:?bitte in .env setzen}
+    command: odoo --dev=reload,qweb,werkzeug,xml
+    volumes:
+      - odoo-data:/var/lib/odoo
+      - ./odoo/config:/etc/odoo
+      - ./odoo/addons:/mnt/extra-addons
+    ports:
+      - "8069:8069"
+      - "8072:8072"
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    restart: unless-stopped
+    environment:
+      ADMINER_DEFAULT_SERVER: db
+      ADMINER_DESIGN: pepa-linha-dark
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
+  # Optional, aber bei deinem Report-/Invoice-Workload sehr nützlich:
+  # fängt ALLE ausgehenden Mails ab statt sie zu versenden.
+  # Outgoing-Mailserver in Odoo: Host mailpit, Port 1025, keine Auth.
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    restart: unless-stopped
+    ports:
+      - "8025:8025"   # Web-UI
+      - "1025:1025"   # SMTP
+
+volumes:
+  postgres-data:
+  odoo-data:

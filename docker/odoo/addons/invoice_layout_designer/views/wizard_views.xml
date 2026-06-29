@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Corporate Design Wizard -->
+    <record id="view_corporate_design_wizard_form" model="ir.ui.view">
+        <field name="name">document.layout.corporate.wizard.form</field>
+        <field name="model">document.layout.corporate.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Corporate Design — Auto-Generate Layouts">
+                <div class="alert alert-info" role="alert">
+                    <strong>This wizard will auto-generate complete document layouts</strong> based on your
+                    company's logo, brand colors, and typography. Existing auto-generated templates will be replaced.
+                </div>
+                <group>
+                    <group string="① Upload Logo">
+                        <field name="company_id" invisible="1"/>
+                        <field name="logo" widget="image" class="oe_avatar"/>
+                        <button name="action_extract_colors" string="🎨 Extract Colors from Logo"
+                                type="object" class="btn-link" icon="fa-eyedropper"/>
+                    </group>
+                    <group string="② Set Colors">
+                        <field name="primary_color" widget="color"/>
+                        <field name="secondary_color" widget="color"/>
+                        <field name="accent_color" widget="color"/>
+                    </group>
+                </group>
+                <group>
+                    <group string="③ Select Fonts">
+                        <field name="heading_font"/>
+                        <field name="body_font"/>
+                        <field name="body_font_size"/>
+                    </group>
+                    <group string="④ Layout Style">
+                        <field name="layout_style" widget="radio"/>
+                    </group>
+                </group>
+                <group string="⑤ Generate Layouts for">
+                    <group>
+                        <field name="gen_invoices"/>
+                        <field name="gen_quotations"/>
+                    </group>
+                    <group>
+                        <field name="gen_delivery"/>
+                        <field name="gen_purchase"/>
+                    </group>
+                </group>
+                <group string="Options">
+                    <group>
+                        <field name="include_payment_info"/>
+                        <field name="include_vat"/>
+                        <field name="include_page_numbers"/>
+                    </group>
+                </group>
+                <footer>
+                    <button name="action_generate" string="🚀 Generate Layouts" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_corporate_design_wizard" model="ir.actions.act_window">
+        <field name="name">Corporate Design Setup</field>
+        <field name="res_model">document.layout.corporate.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Template Import Wizard -->
+    <record id="view_template_import_wizard_form" model="ir.ui.view">
+        <field name="name">document.layout.import.wizard.form</field>
+        <field name="model">document.layout.import.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import Layout Template">
+                <group>
+                    <field name="json_file" filename="json_filename"/>
+                    <field name="json_filename" invisible="1"/>
+                    <field name="company_id" groups="base.group_multi_company"/>
+                </group>
+                <footer>
+                    <button name="action_import" string="Import" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_template_import_wizard" model="ir.actions.act_window">
+        <field name="name">Import Template</field>
+        <field name="res_model">document.layout.import.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- ==================================================================
+         Reset-to-Default-Layout Wizard (non-destructive, opt-in cleanup)
+         ================================================================== -->
+    <record id="view_reset_layout_wizard_form" model="ir.ui.view">
+        <field name="name">document.layout.reset.wizard.form</field>
+        <field name="model">document.layout.reset.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Reset Template to Default Layout">
+                <field name="template_id" invisible="1"/>
+
+                <div class="alert alert-warning" role="alert">
+                    <strong>Reset Template to Default Layout</strong><br/>
+                    This removes stray "ghost" elements (layout items without provenance)
+                    while keeping all your user-customized elements and module defaults.
+                </div>
+
+                <group>
+                    <group string="Summary">
+                        <field name="ghost_element_count" readonly="1"/>
+                        <field name="user_element_count" readonly="1"/>
+                        <field name="xml_element_count" readonly="1"/>
+                    </group>
+                    <group string="Before Reset">
+                        <field name="export_before_reset"/>
+                    </group>
+                </group>
+
+                <notebook>
+                    <page string="Elements to Remove" invisible="ghost_element_count == 0">
+                        <div class="alert alert-danger" role="alert">
+                            <strong>The following ghost elements will be permanently deleted:</strong>
+                        </div>
+                        <field name="ghost_element_names" nolabel="1" readonly="1" widget="text"/>
+                    </page>
+                    <page string="Preserved User Elements" invisible="user_element_count == 0">
+                        <div class="alert alert-success" role="alert">
+                            <strong>Your customizations will be kept:</strong>
+                        </div>
+                        <field name="user_element_names" nolabel="1" readonly="1" widget="text"/>
+                    </page>
+                    <page string="Nothing to Do" invisible="ghost_element_count != 0">
+                        <div class="alert alert-info" role="alert">
+                            <strong>No ghost elements found.</strong> This template contains only
+                            user-customized elements and/or module defaults. Nothing to reset.
+                        </div>
+                    </page>
+                </notebook>
+
+                <footer>
+                    <button name="action_confirm_reset"
+                            string="Confirm &amp; Remove Ghost Elements"
+                            type="object"
+                            class="btn-danger"
+                            invisible="ghost_element_count == 0"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Propagate Header/Footer Wizard (Document Chain, Task 2) -->
+    <record id="view_propagate_hf_wizard_form" model="ir.ui.view">
+        <field name="name">document.layout.propagate.wizard.form</field>
+        <field name="model">document.layout.propagate.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Header / Footer übernehmen">
+                <div class="alert alert-info" role="alert">
+                    <strong>Header und Footer</strong> dieser Sale Order werden auf die
+                    gewählten Ziel-Dokumente übernommen (inklusive Header-/Footer-Hintergrund).
+                    Der <strong>Body</strong> der Ziele bleibt unverändert.
+                </div>
+                <group>
+                    <field name="source_template_id"/>
+                    <field name="available_target_ids" invisible="1"/>
+                    <field name="target_ids" widget="many2many_checkboxes"/>
+                </group>
+                <footer>
+                    <button name="action_propagate" type="object"
+                            string="Übernehmen" class="btn-primary"/>
+                    <button string="Abbrechen" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

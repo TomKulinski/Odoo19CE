@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Top-level App Menu -->
+    <menuitem id="menu_layout_designer_root"
+              name="Layout Designer"
+              web_icon="invoice_layout_designer,static/description/icon.png"
+              sequence="95"/>
+
+    <!-- Main entries -->
+    <menuitem id="menu_layout_templates"
+              name="Templates"
+              parent="menu_layout_designer_root"
+              action="action_document_layout_template"
+              sequence="10"/>
+
+    <menuitem id="menu_custom_fields"
+              name="Custom Fields"
+              parent="menu_layout_designer_root"
+              action="action_custom_field_definition"
+              sequence="20"/>
+
+    <!-- Configuration -->
+    <menuitem id="menu_layout_config"
+              name="Configuration"
+              parent="menu_layout_designer_root"
+              sequence="90"/>
+
+    <menuitem id="menu_layout_corporate_design"
+              name="Corporate Design"
+              parent="menu_layout_config"
+              action="action_corporate_design_wizard"
+              sequence="10"/>
+
+    <menuitem id="menu_layout_import"
+              name="Import Template"
+              parent="menu_layout_config"
+              action="action_template_import_wizard"
+              sequence="20"/>
+</odoo>

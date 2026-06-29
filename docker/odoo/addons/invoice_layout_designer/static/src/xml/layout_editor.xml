@@ -1,0 +1,807 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+<t t-name="invoice_layout_designer.LayoutEditorFull">
+<div class="ild-editor d-flex flex-column" style="height: 100vh; overflow: hidden;">
+
+    <!-- Progress bar -->
+    <div t-att-class="'ild-progress-bar' + ((state.saving || state.previewing) ? ' active' : '')">
+        <div class="ild-progress-bar-inner"/>
+    </div>
+
+    <!-- LOADING -->
+    <t t-if="state.loading">
+        <div class="d-flex align-items-center justify-content-center h-100">
+            <div class="text-center"><i class="fa fa-spinner fa-spin fa-3x text-muted"/><p class="text-muted mt-3">Loading editor...</p></div>
+        </div>
+    </t>
+    <t t-else="">
+
+    <!-- ═══ TOOLBAR ═══ -->
+    <div class="ild-toolbar d-flex align-items-center px-2 py-1 gap-1">
+        <button class="btn btn-sm btn-light" t-on-click="goBack" title="Back"><i class="fa fa-arrow-left"/></button>
+        <strong class="mx-2 text-truncate" style="max-width:160px;font-size:13px;" t-esc="state.tpl.name || 'Template'"/>
+        <span class="badge text-bg-light border" style="font-size:10px;" t-esc="state.tpl.doc_type"/>
+        <span t-if="state.saving" class="ild-save-status saving"><i class="fa fa-spinner fa-spin"/> Saving...</span>
+        <span t-elif="state.previewing" class="ild-save-status saving"><i class="fa fa-spinner fa-spin"/> Preview...</span>
+        <span t-elif="state.dirty" class="ild-save-status dirty">● Unsaved</span>
+        <div class="flex-grow-1"/>
+
+        <div class="btn-group btn-group-sm">
+            <button class="btn btn-light" t-on-click="undo" title="Undo (Ctrl+Z)"><i class="fa fa-undo"/></button>
+            <button class="btn btn-light" t-on-click="redo" title="Redo (Ctrl+Y)"><i class="fa fa-repeat"/></button>
+        </div>
+        <div class="vr mx-1"/>
+        <div class="btn-group btn-group-sm">
+            <button class="btn btn-light" t-on-click="zoomOut"><i class="fa fa-minus"/></button>
+            <button class="btn btn-light" t-on-click="zoomFit" style="min-width:42px;"><t t-esc="state.zoom"/>%</button>
+            <button class="btn btn-light" t-on-click="zoomIn"><i class="fa fa-plus"/></button>
+        </div>
+        <div class="vr mx-1"/>
+        <button class="btn btn-sm" t-att-class="state.grid ? 'btn-secondary' : 'btn-light'" t-on-click="() => this.state.grid = !this.state.grid" title="Grid"><i class="fa fa-th"/></button>
+        <button class="btn btn-sm" t-att-class="state.snap ? 'btn-secondary' : 'btn-light'" t-on-click="() => this.state.snap = !this.state.snap" title="Snap"><i class="fa fa-magnet"/></button>
+        <button class="btn btn-sm" t-att-class="state.showRulers ? 'btn-secondary' : 'btn-light'" t-on-click="() => this.state.showRulers = !this.state.showRulers" title="Rulers"><i class="fa fa-ruler-combined"/> <i class="fa fa-arrows-h" style="font-size:9px;"/></button>
+        <button class="btn btn-sm" t-att-class="state.showDinGuides ? 'btn-secondary' : 'btn-light'" t-on-click="() => this.state.showDinGuides = !this.state.showDinGuides" title="DIN 5008 Guidelines">DIN</button>
+        <div class="vr mx-1"/>
+        <button class="btn btn-sm btn-warning" t-on-click="autoFitAll" title="Auto-Fit: alle Elemente in ihre Zone clippen">
+            <i class="fa fa-compress"/> Auto-Fit
+        </button>
+        <div class="vr mx-1"/>
+        <button class="btn btn-sm btn-outline-info" t-on-click="livePreview" t-att-disabled="state.previewing" title="Side-by-side Preview">
+            <i t-att-class="state.previewing ? 'fa fa-spinner fa-spin' : 'fa fa-eye'"/> Preview
+        </button>
+        <div class="vr mx-1"/>
+        <button class="btn btn-sm btn-light" t-on-click="() => this.state.showShortcuts = true" title="Keyboard shortcuts (?)"><i class="fa fa-keyboard-o"/></button>
+        <button class="btn btn-sm btn-primary" t-on-click="save" t-att-disabled="state.saving">
+            <i t-att-class="state.saving ? 'fa fa-spinner fa-spin' : 'fa fa-save'"/> Save
+        </button>
+    </div>
+
+    <!-- ═══ MAIN LAYOUT ═══ -->
+    <div class="d-flex flex-grow-1 overflow-hidden">
+
+        <!-- ═══ LEFT SIDEBAR ═══ -->
+        <div class="ild-sidebar-left d-flex flex-column" style="width:240px;min-width:240px;overflow:hidden;">
+            <div class="d-flex border-bottom">
+                <button class="flex-fill ild-sidebar-tab" t-att-class="state.leftPanel === 'elements' ? 'active' : ''" t-on-click="() => this.state.leftPanel = 'elements'">Elements</button>
+                <button class="flex-fill ild-sidebar-tab" t-att-class="state.leftPanel === 'layers' ? 'active' : ''" t-on-click="() => this.state.leftPanel = 'layers'">Layers</button>
+                <button class="flex-fill ild-sidebar-tab" t-att-class="state.leftPanel === 'fields' ? 'active' : ''" t-on-click="() => this.state.leftPanel = 'fields'">Fields</button>
+            </div>
+
+            <div class="flex-grow-1 overflow-auto p-2" style="font-size:12px;">
+
+                <!-- ── ELEMENTS TAB ── -->
+                <t t-if="state.leftPanel === 'elements'">
+                    <div class="ild-section-title mb-2">Drag or click to add</div>
+                    <div class="d-flex flex-wrap gap-1">
+                        <t t-foreach="etypes" t-as="et" t-key="et.t">
+                            <div class="ild-elem-chip" draggable="true" t-on-dragstart="(ev) => this.dragElem(ev, et.t)" t-on-click="() => this.addEl(et.t)">
+                                <i t-att-class="'fa ' + et.i"/><span t-esc="et.l"/>
+                            </div>
+                        </t>
+                    </div>
+                    <!-- Multi-select info -->
+                    <t t-if="state.selIds.length > 1">
+                        <div class="mt-2 p-2 rounded" style="background:rgba(113,75,103,0.15);font-size:11px;">
+                            <i class="fa fa-object-group"/> <strong><t t-esc="state.selIds.length"/> elements selected</strong>
+                            <div class="mt-1 text-muted" style="font-size:10px;">Arrow keys to move all · Delete to remove all</div>
+                            <!-- Explizite Fluss-Gruppe: verbundene Elemente fließen als Einheit unter der Tabelle. -->
+                            <div class="d-flex gap-1 mt-2">
+                                <button class="btn btn-sm btn-light flex-fill" style="font-size:10px;" t-on-click="groupSelected" title="Als Fluss-Gruppe verbinden (fließt als Einheit unter der Tabelle)"><i class="fa fa-link"/> Gruppe verbinden</button>
+                                <button class="btn btn-sm btn-light flex-fill" style="font-size:10px;" t-on-click="ungroupSelected" title="Gruppierung lösen"><i class="fa fa-unlink"/> Lösen</button>
+                            </div>
+                        </div>
+                    </t>
+                </t>
+
+                <!-- ── LAYERS TAB (Feature #2 + #6) ── -->
+                <t t-if="state.leftPanel === 'layers'">
+                    <div class="ild-section-title mb-1">Layer Order (drag to reorder)</div>
+                    <t t-foreach="[...state.els].reverse()" t-as="el" t-key="el.id">
+                        <div t-att-class="'ild-layer-item' + (state.selIds.includes(el.id) ? ' selected' : '') + (!el.visible ? ' hidden-el' : '')"
+                             draggable="true"
+                             t-on-dragstart="(ev) => this.onLayerDragStart(ev, el)"
+                             t-on-drop="(ev) => this.onLayerDrop(ev, el)"
+                             t-on-dragover="onLayerDragOver"
+                             t-on-click.stop="(ev) => this._selectEl(el.id, ev.shiftKey)"
+                             t-on-dblclick="() => this.zoomToEl(el)">
+                            <!-- Type icon (Feature #11) -->
+                            <i t-att-class="'fa ' + typeIcon(el.type)" style="width:14px;text-align:center;font-size:9px;opacity:0.6;"/>
+                            <!-- Zone color dot -->
+                            <i class="fa fa-circle" t-att-style="'font-size:5px;color:' + (el.zone==='header'?'#e57373':el.zone==='footer'?'#64b5f6':'#81c784')"/>
+                            <span class="text-truncate flex-grow-1" t-esc="el.name"/>
+                            <!-- Visibility toggle -->
+                            <button class="ild-layer-btn" t-on-click.stop="() => this.upEl(el.id, {visible: !el.visible})" t-att-title="el.visible ? 'Hide' : 'Show'">
+                                <i t-att-class="el.visible ? 'fa fa-eye' : 'fa fa-eye-slash'"/>
+                            </button>
+                            <!-- Lock toggle -->
+                            <button class="ild-layer-btn" t-on-click.stop="() => this.upEl(el.id, {locked: !el.locked})" t-att-title="el.locked ? 'Unlock' : 'Lock'">
+                                <i t-att-class="el.locked ? 'fa fa-lock' : 'fa fa-unlock-alt'"/>
+                            </button>
+                        </div>
+                    </t>
+                </t>
+
+                <!-- ── FIELDS TAB ── -->
+                <t t-if="state.leftPanel === 'fields'">
+                    <input type="text" class="form-control form-control-sm mb-2" placeholder="Search fields..." t-model="state.fSearch"/>
+                    <button class="btn btn-sm btn-outline-primary w-100 mb-2" t-on-click="openFieldBrowser" style="font-size:11px;"><i class="fa fa-database"/> Browse All Fields...</button>
+                    <t t-foreach="Object.entries(fFields)" t-as="entry" t-key="entry[0]">
+                        <div class="mb-1">
+                            <div class="ild-field-cat" t-on-click="() => this.toggleCat(entry[0])">
+                                <i t-att-class="state.expCat[entry[0]] ? 'fa fa-caret-down' : 'fa fa-caret-right'" class="me-1 text-muted" style="width:12px;"/>
+                                <span class="fw-bold" style="font-size:11px;" t-esc="catNames[entry[0]] || entry[0]"/>
+                                <span class="badge text-bg-light ms-auto" style="font-size:9px;" t-esc="entry[1].length"/>
+                            </div>
+                            <t t-if="state.expCat[entry[0]]">
+                                <t t-foreach="entry[1]" t-as="f" t-key="f.path">
+                                    <div class="ild-field-item" draggable="true" t-on-dragstart="(ev) => this.dragField(ev, f)" t-on-click="() => this.addFieldEl(f)">
+                                        <i class="fa fa-tag me-1" style="font-size:8px;color:#714B67;"/>
+                                        <span class="text-truncate" t-esc="f.label"/>
+                                        <span class="ild-tooltip-icon ms-auto" t-att-data-tip="f.path">ℹ</span>
+                                    </div>
+                                </t>
+                            </t>
+                        </div>
+                    </t>
+                </t>
+            </div>
+        </div>
+
+        <!-- ═══ FIELD BROWSER MODAL ═══ -->
+        <t t-if="state.fieldBrowser.open">
+            <div class="ild-modal-overlay" t-on-click.self="closeFieldBrowser">
+                <div class="ild-modal">
+                    <div class="ild-modal-header">
+                        <i class="fa fa-database" style="color:#714B67;font-size:16px;"/>
+                        <span style="font-weight:700;font-size:15px;flex:1;">Dynamic Field Browser</span>
+                        <button class="btn btn-sm btn-close btn-close-white" t-on-click="closeFieldBrowser"/>
+                    </div>
+                    <div style="padding:12px 20px;border-bottom:1px solid #2a2a3a;">
+                        <label style="font-size:10px;color:#94a3b8;display:block;margin-bottom:4px;">Select Model:</label>
+                        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                            <t t-foreach="state.fieldBrowser.models || []" t-as="m" t-key="m.model">
+                                <button t-att-class="'btn btn-sm ' + (state.fieldBrowser.model === m.model ? 'btn-primary' : 'btn-outline-secondary')" style="font-size:11px;padding:2px 8px;" t-on-click="() => this.browseModel(m.model)"><t t-esc="m.label"/></button>
+                            </t>
+                        </div>
+                    </div>
+                    <div style="padding:8px 20px;">
+                        <input type="text" class="form-control form-control-sm" placeholder="Search fields..." t-model="state.fieldBrowser.search"/>
+                    </div>
+                    <div style="flex:1;overflow-y:auto;padding:0 20px 16px;">
+                        <t t-if="state.fieldBrowser.loading"><div style="text-align:center;padding:20px;"><i class="fa fa-spinner fa-spin"/> Loading...</div></t>
+                        <t t-else="">
+                            <t t-foreach="Object.entries(filteredBrowserFields)" t-as="group" t-key="group[0]">
+                                <div style="margin-top:10px;">
+                                    <div style="font-size:10px;color:#64748b;text-transform:uppercase;font-weight:700;margin-bottom:4px;" t-esc="group[1].label"/>
+                                    <t t-foreach="group[1].fields" t-as="field" t-key="field.path">
+                                        <div class="ild-field-row" style="display:flex;align-items:center;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:12px;gap:8px;" t-on-click="() => this.addBrowserField(field)">
+                                            <i class="fa fa-plus-circle" style="color:#714B67;font-size:10px;"/>
+                                            <span style="flex:1;" t-esc="field.label"/>
+                                            <code style="font-size:9px;color:#64748b;background:#1e293b;padding:1px 4px;border-radius:3px;" t-esc="field.path"/>
+                                        </div>
+                                    </t>
+                                </div>
+                            </t>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <!-- ═══ Feature #10: SHORTCUTS MODAL ═══ -->
+        <t t-if="state.showShortcuts">
+            <div class="ild-modal-overlay" t-on-click.self="() => this.state.showShortcuts = false">
+                <div class="ild-modal" style="width:400px;max-height:60vh;">
+                    <div class="ild-modal-header">
+                        <i class="fa fa-keyboard-o" style="font-size:16px;"/>
+                        <span style="font-weight:700;font-size:15px;flex:1;">Keyboard Shortcuts</span>
+                        <button class="btn btn-sm btn-close btn-close-white" t-on-click="() => this.state.showShortcuts = false"/>
+                    </div>
+                    <div style="padding:16px 20px;overflow-y:auto;">
+                        <t t-foreach="shortcuts" t-as="s" t-key="s.key">
+                            <div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid #2a2a3a;">
+                                <kbd style="background:#2a2a3e;padding:3px 10px;border-radius:4px;font-size:11px;min-width:110px;text-align:center;color:#e2e8f0;border:1px solid #3a3a5e;" t-esc="s.key"/>
+                                <span style="margin-left:12px;font-size:12px;" t-esc="s.desc"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </t>
+
+        <!-- ═══ CANVAS ═══ -->
+        <div class="ild-canvas-scroll flex-grow-1 overflow-auto" style="background:#1e1e2e;position:relative;" t-on-click="onCanvasClick">
+            <!-- Zone Legend -->
+            <div class="ild-zone-legend">
+                <div class="ild-zone-legend-item"><span class="ild-zone-legend-dot" style="background:#e57373;"/> Header</div>
+                <div class="ild-zone-legend-item"><span class="ild-zone-legend-dot" style="background:#81c784;"/> Body</div>
+                <div class="ild-zone-legend-item"><span class="ild-zone-legend-dot" style="background:#64b5f6;"/> Footer</div>
+            </div>
+
+            <div class="d-flex justify-content-center p-4">
+                <!-- Feature #12: Ruler top -->
+                <div style="position:relative;">
+                    <t t-if="state.showRulers">
+                        <div class="ild-ruler-h" t-att-style="'width:' + mm(state.tpl.paper_width || 210) + 'px;margin-left:' + mm(state.tpl.margin_left || 15) + 'px;'">
+                            <t t-foreach="rulerMarksX" t-as="rm" t-key="rm.label">
+                                <div class="ild-ruler-mark" t-att-style="'left:' + rm.pos + 'px;'"><span t-esc="rm.label"/></div>
+                            </t>
+                        </div>
+                    </t>
+
+                    <!-- Paper -->
+                    <div style="background:white;box-shadow:0 4px 24px rgba(0,0,0,.4);position:relative;box-sizing:border-box;"
+                         t-att-style="'width:' + mm(state.tpl.paper_width || 210) + 'px;min-height:' + mm(state.tpl.paper_height || 297) + 'px;padding:' + mm(state.tpl.margin_top||15) + 'px ' + mm(state.tpl.margin_right||15) + 'px ' + mm(state.tpl.margin_bottom||15) + 'px ' + mm(state.tpl.margin_left||15) + 'px;'">
+
+                        <!-- Grid -->
+                        <div t-if="state.grid" style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;"
+                             t-att-style="'background-image:linear-gradient(rgba(0,0,0,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.03) 1px,transparent 1px);background-size:' + mm(state.gridSz) + 'px ' + mm(state.gridSz) + 'px;'"/>
+
+                        <div class="d-flex flex-column" t-att-style="'min-height:' + mm(ch) + 'px;'">
+
+                            <!-- HEADER -->
+                            <div class="ild-zone ild-zone-header" t-att-style="zStyle('header')" t-on-dragover="onDragOver" t-on-drop="(ev) => this.onDrop(ev, 'header')">
+                                <div class="ild-zone-badge" style="background:#e57373;color:#fff;">HEADER</div>
+                                <t t-foreach="elsByZone('header')" t-as="el" t-key="el.id">
+                                    <div class="ild-el" t-att-style="eStyle(el)" t-on-mousedown="(ev) => this.onElDown(ev, el)" t-on-dblclick="(ev) => this.onElDblClick(ev, el)" t-on-contextmenu="(ev) => this.onElContextMenu(ev, el)">
+                                        <!-- Type icon overlay (Feature #11) -->
+                                        <div class="ild-el-type-icon"><i t-att-class="'fa ' + typeIcon(el.type)"/></div>
+                                        <t t-if="state.editingTextId === el.id">
+                                            <div contenteditable="true" style="width:100%;height:100%;outline:none;cursor:text;" t-on-blur="(ev) => this.onInlineTextBlur(ev, el)" t-on-keydown="(ev) => this.onInlineTextKey(ev, el)" t-out="el.text_content"/>
+                                        </t>
+                                        <t t-else=""><t t-esc="eLabel(el)"/></t>
+                                        <t t-if="el.id === state.selId and !el.locked">
+                                            <t t-foreach="['nw','n','ne','e','se','s','sw','w']" t-as="h" t-key="h">
+                                                <div t-att-class="'ild-rh ild-rh-' + h" t-on-mousedown.stop="(ev) => this.onResDown(ev, el, h)"/>
+                                            </t>
+                                        </t>
+                                    </div>
+                                </t>
+                            </div>
+
+                            <!-- BODY -->
+                            <div class="ild-zone ild-zone-body" t-att-style="zStyle('body')" t-on-dragover="onDragOver" t-on-drop="(ev) => this.onDrop(ev, 'body')">
+                                <div class="ild-zone-badge" style="background:#81c784;color:#fff;">BODY</div>
+                                <!-- Snap guides -->
+                                <t t-if="state.guides">
+                                    <t t-foreach="state.guides.x || []" t-as="gx" t-key="'gx'+gx_index"><div class="ild-snap-guide-v" t-att-style="'left:' + mm(gx) + 'px;'"/></t>
+                                    <t t-foreach="state.guides.y || []" t-as="gy" t-key="'gy'+gy_index"><div class="ild-snap-guide-h" t-att-style="'top:' + mm(gy) + 'px;'"/></t>
+                                </t>
+                                <!-- DIN 5008 guides (Feature #4) -->
+                                <t t-foreach="dinGuides" t-as="dg" t-key="dg.label">
+                                    <t t-if="dg.type === 'h'">
+                                        <div class="ild-din-guide-h" t-att-style="'top:' + mm(dg.y) + 'px;border-color:' + dg.color + ';'">
+                                            <span class="ild-din-label" t-att-style="'color:' + dg.color" t-esc="dg.label"/>
+                                        </div>
+                                    </t>
+                                    <t t-if="dg.type === 'v'">
+                                        <div class="ild-din-guide-v" t-att-style="'left:' + mm(dg.x) + 'px;border-color:' + dg.color + ';'">
+                                            <span class="ild-din-label" t-att-style="'color:' + dg.color" t-esc="dg.label"/>
+                                        </div>
+                                    </t>
+                                </t>
+                                <!-- Elements -->
+                                <t t-foreach="elsByZone('body')" t-as="el" t-key="el.id">
+                                    <div class="ild-el" t-att-style="eStyle(el)" t-on-mousedown="(ev) => this.onElDown(ev, el)" t-on-dblclick="(ev) => this.onElDblClick(ev, el)" t-on-contextmenu="(ev) => this.onElContextMenu(ev, el)">
+                                        <div class="ild-el-type-icon"><i t-att-class="'fa ' + typeIcon(el.type)"/></div>
+                                        <t t-if="state.editingTextId === el.id">
+                                            <div contenteditable="true" style="width:100%;height:100%;outline:none;cursor:text;" t-on-blur="(ev) => this.onInlineTextBlur(ev, el)" t-on-keydown="(ev) => this.onInlineTextKey(ev, el)" t-out="el.text_content"/>
+                                        </t>
+                                        <t t-else=""><t t-esc="eLabel(el)"/></t>
+                                        <t t-if="el.id === state.selId and !el.locked">
+                                            <t t-foreach="['nw','n','ne','e','se','s','sw','w']" t-as="h" t-key="h">
+                                                <div t-att-class="'ild-rh ild-rh-' + h" t-on-mousedown.stop="(ev) => this.onResDown(ev, el, h)"/>
+                                            </t>
+                                        </t>
+                                    </div>
+                                </t>
+                            </div>
+
+                            <!-- FOOTER -->
+                            <div class="ild-zone ild-zone-footer" t-att-style="zStyle('footer')" t-on-dragover="onDragOver" t-on-drop="(ev) => this.onDrop(ev, 'footer')">
+                                <div class="ild-zone-badge" style="background:#64b5f6;color:#fff;">FOOTER</div>
+                                <t t-foreach="elsByZone('footer')" t-as="el" t-key="el.id">
+                                    <div class="ild-el" t-att-style="eStyle(el)" t-on-mousedown="(ev) => this.onElDown(ev, el)" t-on-dblclick="(ev) => this.onElDblClick(ev, el)" t-on-contextmenu="(ev) => this.onElContextMenu(ev, el)">
+                                        <div class="ild-el-type-icon"><i t-att-class="'fa ' + typeIcon(el.type)"/></div>
+                                        <t t-if="state.editingTextId === el.id">
+                                            <div contenteditable="true" style="width:100%;height:100%;outline:none;cursor:text;" t-on-blur="(ev) => this.onInlineTextBlur(ev, el)" t-on-keydown="(ev) => this.onInlineTextKey(ev, el)" t-out="el.text_content"/>
+                                        </t>
+                                        <t t-else=""><t t-esc="eLabel(el)"/></t>
+                                        <t t-if="el.id === state.selId and !el.locked">
+                                            <t t-foreach="['nw','n','ne','e','se','s','sw','w']" t-as="h" t-key="h">
+                                                <div t-att-class="'ild-rh ild-rh-' + h" t-on-mousedown.stop="(ev) => this.onResDown(ev, el, h)"/>
+                                            </t>
+                                        </t>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ═══ Feature #1: SIDE-BY-SIDE PREVIEW PANEL ═══ -->
+        <t t-if="state.showPreview">
+            <div t-att-class="'ild-preview-panel' + (state.previewFullscreen ? ' fullscreen' : '')">
+                <!-- Resize handle (left edge) -->
+                <div class="ild-preview-resize" t-on-mousedown="onPreviewResizeDown"/>
+                <div class="d-flex align-items-center px-3 py-2 border-bottom" style="background:#111118;">
+                    <i class="fa fa-file-pdf-o me-2" style="color:#e57373;"/>
+                    <strong style="font-size:12px;">Live Preview</strong>
+                    <span t-if="state.previewing" class="ms-2" style="font-size:10px;color:#81c784;"><i class="fa fa-spinner fa-spin"/> updating...</span>
+                    <span t-else="" class="ms-2" style="font-size:9px;color:#666;">auto-refresh</span>
+                    <div class="flex-grow-1"/>
+                    <button class="btn btn-sm btn-light" t-on-click="livePreview" title="Refresh now"><i class="fa fa-refresh"/></button>
+                    <button class="btn btn-sm btn-light ms-1" t-on-click="togglePreviewFullscreen" t-att-title="state.previewFullscreen ? 'Exit fullscreen' : 'Fullscreen'">
+                        <i t-att-class="state.previewFullscreen ? 'fa fa-compress' : 'fa fa-expand'"/>
+                    </button>
+                    <button class="btn btn-sm btn-light ms-1" t-on-click="closePreview" title="Close"><i class="fa fa-times"/></button>
+                </div>
+                <div class="ild-preview-content">
+                    <iframe class="ild-preview-iframe" t-att-srcdoc="state.previewSrcdoc"/>
+                </div>
+            </div>
+        </t>
+
+        <!-- ═══ Feature #5: CONTEXT MENU ═══ -->
+        <t t-if="state.showCtxMenu">
+            <div class="ild-ctx-menu" t-att-style="'left:' + state.ctxMenuX + 'px;top:' + state.ctxMenuY + 'px;'">
+                <div class="ild-ctx-item" t-on-click="() => this.ctxAction('duplicate')"><i class="fa fa-copy"/> Duplicate</div>
+                <div class="ild-ctx-item" t-on-click="() => this.ctxAction('delete')"><i class="fa fa-trash"/> Delete</div>
+                <div class="ild-ctx-sep"/>
+                <div class="ild-ctx-item" t-on-click="() => this.ctxAction('lock')"><i class="fa fa-lock"/> Toggle Lock</div>
+                <div class="ild-ctx-item" t-on-click="() => this.ctxAction('visible')"><i class="fa fa-eye"/> Toggle Visible</div>
+                <div class="ild-ctx-sep"/>
+                <div class="ild-ctx-item" t-on-click="() => this.ctxAction('bringFront')"><i class="fa fa-arrow-up"/> Bring to Front</div>
+                <div class="ild-ctx-item" t-on-click="() => this.ctxAction('sendBack')"><i class="fa fa-arrow-down"/> Send to Back</div>
+                <div class="ild-ctx-sep"/>
+                <div class="ild-ctx-item" t-on-click="() => this.ctxAction('alignLeft')"><i class="fa fa-align-left"/> Align Left</div>
+                <div class="ild-ctx-item" t-on-click="() => this.ctxAction('alignCenter')"><i class="fa fa-align-center"/> Align Center</div>
+                <div class="ild-ctx-item" t-on-click="() => this.ctxAction('alignRight')"><i class="fa fa-align-right"/> Align Right</div>
+                <div class="ild-ctx-sep"/>
+                <div class="ild-ctx-item" t-on-click="() => this.ctxAction('toHeader')"><i class="fa fa-arrow-up" style="color:#e57373;"/> Move to Header</div>
+                <div class="ild-ctx-item" t-on-click="() => this.ctxAction('toBody')"><i class="fa fa-arrow-right" style="color:#81c784;"/> Move to Body</div>
+                <div class="ild-ctx-item" t-on-click="() => this.ctxAction('toFooter')"><i class="fa fa-arrow-down" style="color:#64b5f6;"/> Move to Footer</div>
+            </div>
+        </t>
+
+        <!-- ═══ RIGHT SIDEBAR: PROPERTIES ═══ -->
+        <div class="ild-sidebar-right d-flex flex-column" style="width:260px;min-width:260px;overflow:hidden;">
+            <t t-if="!sel">
+                <div class="text-center p-4" style="margin-top:80px;">
+                    <i class="fa fa-mouse-pointer fa-3x d-block mb-3" style="opacity:0.2;"/>
+                    <p style="font-size:12px;opacity:0.5;">Select an element to<br/>edit its properties</p>
+                </div>
+            </t>
+            <t t-else="">
+                <div class="d-flex align-items-center px-2 py-2 border-bottom gap-1">
+                    <i t-att-class="'fa ' + typeIcon(sel.type)" style="color:#714B67;font-size:11px;"/>
+                    <input type="text" class="form-control form-control-sm border-0 fw-bold px-1" style="font-size:13px;" t-att-value="sel.name" t-on-change="(ev) => this.sp('name', ev)"/>
+                    <button class="btn btn-sm btn-light" t-on-click="dupSel" title="Duplicate (Ctrl+D)"><i class="fa fa-copy"/></button>
+                    <button class="btn btn-sm btn-light" t-on-click="delSel" title="Delete (Del)" style="color:#e57373;"><i class="fa fa-trash"/></button>
+                </div>
+
+                <div class="d-flex border-bottom">
+                    <button class="flex-fill ild-prop-tab" t-att-class="state.propTab === 'pos' ? 'active' : ''" t-on-click="() => this.state.propTab = 'pos'">Position</button>
+                    <button class="flex-fill ild-prop-tab" t-att-class="state.propTab === 'style' ? 'active' : ''" t-on-click="() => this.state.propTab = 'style'">Style</button>
+                    <button class="flex-fill ild-prop-tab" t-att-class="state.propTab === 'config' ? 'active' : ''" t-on-click="() => this.state.propTab = 'config'">Config</button>
+                </div>
+
+                <div class="flex-grow-1 overflow-auto p-2" style="font-size:12px;">
+
+                    <!-- POSITION -->
+                    <t t-if="state.propTab === 'pos'">
+                        <div class="row g-2 mb-2">
+                            <div class="col-6"><label class="ild-prop-label">X (mm) <span class="ild-tooltip-icon" data-tip="Horizontal position">ℹ</span></label>
+                                <input type="number" class="form-control form-control-sm" step="1" t-att-value="sel.pos_x" t-on-change="(ev) => this.sp('pos_x', ev)"/></div>
+                            <div class="col-6"><label class="ild-prop-label">Y (mm) <span class="ild-tooltip-icon" data-tip="Vertical position">ℹ</span></label>
+                                <input type="number" class="form-control form-control-sm" step="1" t-att-value="sel.pos_y" t-on-change="(ev) => this.sp('pos_y', ev)"/></div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6"><label class="ild-prop-label">Width</label>
+                                <input type="number" class="form-control form-control-sm" step="1" min="5" t-att-value="sel.width" t-on-change="(ev) => this.sp('width', ev)"/></div>
+                            <div class="col-6"><label class="ild-prop-label">Height</label>
+                                <input type="number" class="form-control form-control-sm" step="1" min="2" t-att-value="sel.height" t-on-change="(ev) => this.sp('height', ev)"/></div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6"><label class="ild-prop-label">Rotation</label>
+                                <input type="number" class="form-control form-control-sm" step="1" t-att-value="sel.rotation" t-on-change="(ev) => this.sp('rotation', ev)"/></div>
+                            <div class="col-6"><label class="ild-prop-label">Zone</label>
+                                <select class="form-select form-select-sm" t-on-change="(ev) => this.sp('zone', ev)">
+                                    <option value="header" t-att-selected="sel.zone==='header'">Header</option>
+                                    <option value="body" t-att-selected="sel.zone==='body'">Body</option>
+                                    <option value="footer" t-att-selected="sel.zone==='footer'">Footer</option>
+                                </select></div>
+                        </div>
+                        <label class="ild-prop-label mb-1">Align</label>
+                        <div class="btn-group btn-group-sm w-100 mb-2">
+                            <button class="btn btn-light" t-on-click="() => this.alignEl('left')"><i class="fa fa-align-left"/></button>
+                            <button class="btn btn-light" t-on-click="() => this.alignEl('center')"><i class="fa fa-align-center"/></button>
+                            <button class="btn btn-light" t-on-click="() => this.alignEl('right')"><i class="fa fa-align-right"/></button>
+                        </div>
+                        <div class="d-flex gap-3">
+                            <label class="d-flex align-items-center gap-1" style="font-size:11px;"><input type="checkbox" t-att-checked="sel.visible" t-on-change="(ev) => this.sp('visible', ev)"/> Visible</label>
+                            <label class="d-flex align-items-center gap-1" style="font-size:11px;"><input type="checkbox" t-att-checked="sel.locked" t-on-change="(ev) => this.sp('locked', ev)"/> Locked</label>
+                        </div>
+                        <t t-if="sel.zone === 'body' and sel.type !== 'table'">
+                            <label class="ild-prop-label mt-2">Verankerung <span class="ild-tooltip-icon" data-tip="'Unter Tabelle': Block fließt direkt unter die Positionstabelle und rutscht mit ihrer Höhe nach (z.B. Notiz, Unterschrift, Hinweis).">ℹ</span></label>
+                            <select class="form-select form-select-sm" t-on-change="(ev) => this.sp('anchor_mode', ev)">
+                                <option value="fixed" t-att-selected="(sel.anchor_mode || 'fixed')==='fixed'">Feste Position</option>
+                                <option value="after_table" t-att-selected="sel.anchor_mode==='after_table'">Unter Tabelle</option>
+                            </select>
+                            <t t-if="sel.anchor_mode === 'after_table'">
+                                <label class="ild-prop-label mt-2">Abstand zur Tabelle (mm)</label>
+                                <input type="number" class="form-control form-control-sm" step="0.5" min="0" t-att-value="sel.anchor_gap" t-on-change="(ev) => this.sp('anchor_gap', ev)"/>
+                            </t>
+                            <!-- Fluss-Gruppe: Hinweis + Lösen, wenn dieses Element Teil einer Gruppe ist. -->
+                            <t t-if="sel.flow_group_key">
+                                <div class="mt-2 p-1 rounded d-flex align-items-center justify-content-between" style="background:rgba(113,75,103,0.15);font-size:10px;">
+                                    <span><i class="fa fa-link"/> Teil einer Fluss-Gruppe</span>
+                                    <button class="btn btn-sm btn-light" style="font-size:10px;padding:0 6px;" t-on-click="ungroupSelected" title="Diese Gruppe lösen"><i class="fa fa-unlink"/> Lösen</button>
+                                </div>
+                            </t>
+                            <!-- Fixier-Anker an Strukturelement (Strang 1): nur Summenblock als Ziel.
+                                 Nicht für das Summenblock-Element selbst (kann sich nicht an sich fixieren). -->
+                            <t t-if="sel.type !== 'totals'">
+                                <label class="ild-prop-label mt-2">Fixiert an Strukturelement <span class="ild-tooltip-icon" data-tip="'An Summenblock': Element fließt als Overlay mit dem Summenblock mit und behält seinen relativen Versatz (z.B. Box als Rahmen um die Summen). Braucht ein Summenblock-Element im Layout, das unter der Tabelle fließt.">ℹ</span></label>
+                                <select class="form-select form-select-sm" t-on-change="(ev) => this.sp('fixed_to', ev)">
+                                    <option value="none" t-att-selected="(sel.fixed_to || 'none')==='none'">Nicht fixiert</option>
+                                    <option value="totals" t-att-selected="sel.fixed_to==='totals'">An Summenblock</option>
+                                </select>
+                            </t>
+                        </t>
+                    </t>
+
+                    <!-- STYLE -->
+                    <t t-if="state.propTab === 'style'">
+                        <label class="ild-prop-label">Font</label>
+                        <select class="form-select form-select-sm mb-2" t-on-change="(ev) => this.ss('font-family', ev)">
+                            <t t-foreach="['Helvetica','Arial','Times New Roman','Courier New','Georgia','Verdana']" t-as="f" t-key="f">
+                                <option t-att-value="f" t-att-selected="(sel.style||{})['font-family']===f" t-esc="f"/>
+                            </t>
+                        </select>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6"><label class="ild-prop-label">Size</label><input type="text" class="form-control form-control-sm" t-att-value="(sel.style||{})['font-size']||'10pt'" t-on-change="(ev) => this.ss('font-size', ev)"/></div>
+                            <div class="col-6"><label class="ild-prop-label">Weight</label><select class="form-select form-select-sm" t-on-change="(ev) => this.ss('font-weight', ev)"><option value="normal">Normal</option><option value="bold">Bold</option><option value="300">Light</option></select></div>
+                        </div>
+                        <div class="row g-2 mb-2">
+                            <div class="col-6"><label class="ild-prop-label">Color</label><input type="color" class="form-control form-control-sm form-control-color" t-att-value="(sel.style||{})['color']||'#000000'" t-on-change="(ev) => this.ss('color', ev)"/></div>
+                            <div class="col-6"><label class="ild-prop-label">Background</label><input type="color" class="form-control form-control-sm form-control-color" t-att-value="(sel.style||{})['background-color']||'#ffffff'" t-on-change="(ev) => this.ss('background-color', ev)"/></div>
+                        </div>
+                        <label class="ild-prop-label">Text Align</label>
+                        <div class="btn-group btn-group-sm w-100 mb-2">
+                            <t t-foreach="[['left','fa-align-left'],['center','fa-align-center'],['right','fa-align-right']]" t-as="a" t-key="a[0]">
+                                <button class="btn" t-att-class="sel.text_align===a[0]?'btn-secondary':'btn-light'" t-on-click="() => this.sa(a[0])"><i t-att-class="'fa '+a[1]"/></button>
+                            </t>
+                        </div>
+                        <label class="ild-prop-label">Border <span class="ild-tooltip-icon" data-tip="CSS: 1pt solid #000">ℹ</span></label>
+                        <input type="text" class="form-control form-control-sm mb-2" placeholder="1pt solid #000" t-att-value="(sel.style||{})['border']||''" t-on-change="(ev) => this.ss('border', ev)"/>
+                        <label class="ild-prop-label">Text Decoration</label>
+                        <select class="form-select form-select-sm mb-2" t-on-change="(ev) => this.ss('text-decoration', ev)">
+                            <option value="">None</option><option value="underline" t-att-selected="(sel.style||{})['text-decoration']==='underline'">Underline</option><option value="line-through" t-att-selected="(sel.style||{})['text-decoration']==='line-through'">Strikethrough</option>
+                        </select>
+                    </t>
+
+                    <!-- CONFIG -->
+                    <t t-if="state.propTab === 'config'">
+                        <!-- Text --><t t-if="sel.type === 'text'"><label class="ild-prop-label">Content <span class="ild-tooltip-icon" data-tip="HTML + placeholders: [company_name] [street] [zip] [city] [phone] [email] [vat] [iban] [bic]">ℹ</span></label><textarea class="form-control form-control-sm" rows="5" t-att-value="sel.text_content" t-on-change="(ev) => this.sp('text_content', ev)"/><small class="text-muted" style="font-size:10px;">HTML + [placeholder] tokens</small></t>
+                        <!-- Field --><t t-if="sel.type === 'field'"><label class="ild-prop-label">Field Path <span class="ild-tooltip-icon" data-tip="e.g. partner_id.name">ℹ</span></label><div class="d-flex gap-1 mb-2"><input type="text" class="form-control form-control-sm" style="flex:1;" t-att-value="sel.field_name" t-on-change="(ev) => this.sp('field_name', ev)"/><button class="btn btn-sm btn-outline-secondary" style="flex:none;" t-on-click="() => this.openFieldBrowser('field')" title="Feld suchen"><i class="fa fa-search"/></button></div><label class="ild-prop-label">Standard</label><input type="text" class="form-control form-control-sm mb-2" t-att-value="sel.field_default" t-on-change="(ev) => this.sp('field_default', ev)"/></t>
+                        <!-- Image --><t t-if="sel.type === 'image'"><label class="ild-prop-label">Source</label><select class="form-select form-select-sm mb-2" t-on-change="(ev) => this.sp('image_source', ev)"><option value="company_logo" t-att-selected="sel.image_source==='company_logo'">Company Logo</option><option value="upload" t-att-selected="sel.image_source==='upload'">Upload</option><option value="field" t-att-selected="sel.image_source==='field'">From Field</option></select><t t-if="sel.image_source === 'upload'"><label class="btn btn-sm btn-outline-primary w-100 mb-2" style="font-size:11px;"><i class="fa fa-upload"/> Upload<input type="file" accept="image/*" style="display:none;" t-on-change="(ev) => this.onImageUpload(ev)"/></label></t><t t-if="sel.image_source === 'field'"><input type="text" class="form-control form-control-sm mb-2" placeholder="partner_id.image_128" t-att-value="sel.image_field_name" t-on-change="(ev) => this.sp('image_field_name', ev)"/></t><label class="ild-prop-label">Fit</label><select class="form-select form-select-sm" t-on-change="(ev) => this.sp('image_fit', ev)"><option value="contain">Contain</option><option value="cover">Cover</option><option value="stretch">Stretch</option></select></t>
+                        <!-- Table --><t t-if="sel.type === 'table'"><div class="d-flex flex-wrap gap-2 mb-2"><label class="d-flex align-items-center gap-1" style="font-size:11px;"><input type="checkbox" t-att-checked="sel.table_show_header" t-on-change="(ev) => this.sp('table_show_header', ev)"/> Header</label><label class="d-flex align-items-center gap-1" style="font-size:11px;"><input type="checkbox" t-att-checked="sel.table_show_totals" t-on-change="(ev) => this.sp('table_show_totals', ev)"/> Totals</label><label class="d-flex align-items-center gap-1" style="font-size:11px;"><input type="checkbox" t-att-checked="sel.table_zebra" t-on-change="(ev) => this.sp('table_zebra', ev)"/> Zebra</label></div><label class="ild-prop-label">Borders</label><select class="form-select form-select-sm mb-2" t-on-change="(ev) => this.sp('table_border_style', ev)"><option value="none">None</option><option value="horizontal">Horizontal</option><option value="full">Grid</option><option value="outer">Outer</option></select><label class="ild-prop-label">Rows/Page <span class="ild-tooltip-icon" data-tip="0 = auto">ℹ</span></label><input type="number" class="form-control form-control-sm mb-2" min="0" max="100" t-att-value="sel.table_rows_per_page" t-on-change="(ev) => this.sp('table_rows_per_page', ev)"/>
+                            <label class="ild-prop-label">Zeilenabstand (mm) <span class="ild-tooltip-icon" data-tip="Zusätzlicher vertikaler Abstand zwischen Positionen. 0 = Standard">ℹ</span></label><input type="number" class="form-control form-control-sm mb-2" min="0" step="0.5" t-att-value="(sel.table_row_spacing ?? 0)" t-on-change="(ev) => this.sp('table_row_spacing', ev)"/>
+                            <!-- Columns with Field Browser -->
+                            <label class="ild-prop-label fw-bold">Columns</label>
+                            <t t-foreach="sel.table_columns || []" t-as="col" t-key="col_index">
+                                <div class="mb-2 p-1" style="background:#1a1a2e; border-radius:4px; border:1px solid #2a2a3e;">
+                                    <div class="d-flex gap-1 mb-1">
+                                        <span style="font-size:9px; color:#888; min-width:14px; text-align:center; padding-top:4px;" t-esc="col_index + 1"/>
+                                        <input type="text" class="form-control form-control-sm" style="flex:2;" placeholder="Label (z.B. Bezeichnung)" t-att-value="col.label" t-on-change="(ev) => this.upCol(col_index, 'label', ev.target.value)"/>
+                                        <button class="btn btn-sm btn-light" style="flex:none;color:#e57373;" t-on-click="() => this.rmCol(col_index)" title="Delete column">×</button>
+                                    </div>
+                                    <div class="d-flex gap-1">
+                                        <span style="min-width:14px;"/>
+                                        <input type="text" class="form-control form-control-sm" style="flex:2;" placeholder="Field (z.B. name, product_id.default_code)" t-att-value="col.field" t-on-change="(ev) => this.upCol(col_index, 'field', ev.target.value)"/>
+                                        <button class="btn btn-sm btn-outline-secondary" style="flex:none;" t-on-click="() => this.openFieldBrowser('column', col_index)" title="Browse line fields"><i class="fa fa-search"/></button>
+                                        <select class="form-select form-select-sm" style="width:40px;flex:none;" t-on-change="(ev) => this.upCol(col_index, 'align', ev.target.value)" title="Align">
+                                            <option value="left" t-att-selected="col.align==='left'">L</option>
+                                            <option value="center" t-att-selected="col.align==='center'">C</option>
+                                            <option value="right" t-att-selected="col.align==='right'">R</option>
+                                        </select>
+                                        <select class="form-select form-select-sm" style="width:50px;flex:none;" t-on-change="(ev) => this.upCol(col_index, 'type', ev.target.value)" title="Type">
+                                            <option value="" t-att-selected="!col.type">Txt</option>
+                                            <option value="monetary" t-att-selected="col.type==='monetary'">€</option>
+                                            <option value="float" t-att-selected="col.type==='float'">#</option>
+                                            <option value="date" t-att-selected="col.type==='date'">Dat</option>
+                                        </select>
+                                        <input type="text" class="form-control form-control-sm" style="width:42px;flex:none;" placeholder="W%" t-att-value="col.width" t-on-change="(ev) => this.upCol(col_index, 'width', ev.target.value)" title="Width"/>
+                                    </div>
+                                    <!-- Per-column styling (Punkt 1): bold / size / text color / bg / visible / reorder.
+                                         All optional → leaving them untouched keeps the column's default look. -->
+                                    <div class="d-flex gap-1 mt-1 align-items-center">
+                                        <span style="min-width:14px;"/>
+                                        <label class="d-flex align-items-center gap-1" style="font-size:9px;color:#aaa;flex:none;" title="Fett"><input type="checkbox" t-att-checked="col.bold" t-on-change="(ev) => this.upCol(col_index, 'bold', ev.target.checked)"/> B</label>
+                                        <input type="number" class="form-control form-control-sm" style="width:44px;flex:none;" step="0.5" min="4" placeholder="pt" t-att-value="col.fsize" t-on-change="(ev) => this.upCol(col_index, 'fsize', ev.target.value)" title="Schriftgröße (pt)"/>
+                                        <input type="color" class="form-control form-control-sm form-control-color" style="width:30px;flex:none;padding:1px;" t-att-value="col.color || '#000000'" t-on-change="(ev) => this.upCol(col_index, 'color', ev.target.value)" title="Schriftfarbe"/>
+                                        <input type="color" class="form-control form-control-sm form-control-color" style="width:30px;flex:none;padding:1px;" t-att-value="col.bg || '#ffffff'" t-on-change="(ev) => this.upCol(col_index, 'bg', ev.target.value)" title="Hintergrundfarbe"/>
+                                        <label class="d-flex align-items-center gap-1" style="font-size:9px;color:#aaa;flex:none;" title="Sichtbar"><input type="checkbox" t-att-checked="!col.hidden" t-on-change="(ev) => this.upCol(col_index, 'hidden', !ev.target.checked)"/> 👁</label>
+                                        <button class="btn btn-sm btn-light" style="flex:none;padding:0 5px;" t-on-click="() => this.moveCol(col_index, -1)" title="Nach oben">▲</button>
+                                        <button class="btn btn-sm btn-light" style="flex:none;padding:0 5px;" t-on-click="() => this.moveCol(col_index, 1)" title="Nach unten">▼</button>
+                                    </div>
+                                </div>
+                            </t>
+                            <button class="btn btn-sm btn-light w-100 mb-2" t-on-click="addCol"><i class="fa fa-plus"/> Column</button>
+
+                            <!-- Sections / Subtotals Config -->
+                            <div class="mt-2 pt-2" style="border-top:1px solid #2a2a3e;">
+                                <label class="ild-prop-label fw-bold">Sections &amp; Display</label>
+                                <div class="d-flex flex-wrap gap-2 mb-2">
+                                    <label class="d-flex align-items-center gap-1" style="font-size:11px;">
+                                        <input type="checkbox" t-att-checked="sel.table_show_sections" t-on-change="(ev) => this.sp('table_show_sections', ev)"/> Section Headers
+                                    </label>
+                                    <label class="d-flex align-items-center gap-1" style="font-size:11px;">
+                                        <input type="checkbox" t-att-checked="sel.table_show_notes" t-on-change="(ev) => this.sp('table_show_notes', ev)"/> Note Rows
+                                    </label>
+                                    <label class="d-flex align-items-center gap-1" style="font-size:11px;">
+                                        <input type="checkbox" t-att-checked="sel.table_show_subtotals" t-on-change="(ev) => this.sp('table_show_subtotals', ev)"/> Section Subtotals
+                                    </label>
+                                </div>
+                                <label class="ild-prop-label">Section Header Style</label>
+                                <select class="form-select form-select-sm mb-1" t-on-change="(ev) => this.sp('table_section_style', ev)">
+                                    <option value="font-weight:600; font-size:9pt; background:#f5f5f5;" t-att-selected="(sel.table_section_style||'').includes('f5f5f5')">Grau Hintergrund (Standard)</option>
+                                    <option value="font-weight:600; font-size:9pt; border-bottom:1pt solid #333;" t-att-selected="(sel.table_section_style||'').includes('border-bottom')">Unterstrich fett</option>
+                                    <option value="font-weight:500; font-size:9pt; color:#2c3e50; text-transform:uppercase; letter-spacing:0.5pt;" t-att-selected="(sel.table_section_style||'').includes('uppercase')">Uppercase dezent</option>
+                                    <option value="font-weight:600; font-size:10pt; color:#333; padding-top:4mm;" t-att-selected="(sel.table_section_style||'').includes('10pt')">Gross mit Abstand</option>
+                                </select>
+                                <label class="ild-prop-label">Note Row Style</label>
+                                <select class="form-select form-select-sm mb-1" t-on-change="(ev) => this.sp('table_note_style', ev)">
+                                    <option value="font-style:italic; color:#666;" t-att-selected="(sel.table_note_style||'').includes('italic')">Kursiv grau (Standard)</option>
+                                    <option value="font-size:7.5pt; color:#888;" t-att-selected="(sel.table_note_style||'').includes('7.5pt')">Klein und dezent</option>
+                                    <option value="color:#444; padding-left:5mm;" t-att-selected="(sel.table_note_style||'').includes('padding-left')">Eingerueckt</option>
+                                </select>
+                                <label class="ild-prop-label">Subtotal Style</label>
+                                <select class="form-select form-select-sm" t-on-change="(ev) => this.sp('table_subtotal_style', ev)">
+                                    <option value="font-weight:500; border-top:0.5pt solid #ccc;" t-att-selected="(sel.table_subtotal_style||'').includes('0.5pt')">Linie duenn (Standard)</option>
+                                    <option value="font-weight:600; border-top:1pt solid #333; background:#fafafa;" t-att-selected="(sel.table_subtotal_style||'').includes('1pt')">Linie fett + Hintergrund</option>
+                                    <option value="font-weight:500; font-style:italic; color:#555;" t-att-selected="(sel.table_subtotal_style||'').includes('italic')">Kursiv dezent</option>
+                                </select>
+                            </div>
+
+                            <!-- Totals Labels & Style -->
+                            <div class="mt-2 pt-2" style="border-top:1px solid #2a2a3e;">
+                                <label class="ild-prop-label fw-bold">Summen-Bereich</label>
+                                <div class="row g-1 mb-1">
+                                    <div class="col-5"><label class="ild-prop-label">Zwischensumme</label></div>
+                                    <div class="col-7"><input type="text" class="form-control form-control-sm" placeholder="Subtotal:" t-att-value="sel.totals_label_subtotal || 'Subtotal:'" t-on-change="(ev) => this.sp('totals_label_subtotal', ev)"/></div>
+                                </div>
+                                <div class="row g-1 mb-1">
+                                    <div class="col-5"><label class="ild-prop-label">Steuer</label></div>
+                                    <div class="col-7"><input type="text" class="form-control form-control-sm" placeholder="Tax:" t-att-value="sel.totals_label_tax || 'Tax:'" t-on-change="(ev) => this.sp('totals_label_tax', ev)"/></div>
+                                </div>
+                                <div class="row g-1 mb-1">
+                                    <div class="col-5"><label class="ild-prop-label">Gesamt</label></div>
+                                    <div class="col-7"><input type="text" class="form-control form-control-sm" placeholder="Total:" t-att-value="sel.totals_label_total || 'Total:'" t-on-change="(ev) => this.sp('totals_label_total', ev)"/></div>
+                                </div>
+                                <label class="ild-prop-label">Summen-Style</label>
+                                <select class="form-select form-select-sm" t-on-change="(ev) => this.sp('totals_style', ev)">
+                                    <option value="default" t-att-selected="!sel.totals_style || sel.totals_style === 'default'">Standard (rechtsbündig)</option>
+                                    <option value="bold" t-att-selected="sel.totals_style === 'bold'">Fett mit Linie</option>
+                                    <option value="large" t-att-selected="sel.totals_style === 'large'">Gross und prominent</option>
+                                    <option value="minimal" t-att-selected="sel.totals_style === 'minimal'">Minimal (nur Total fett)</option>
+                                    <option value="boxed" t-att-selected="sel.totals_style === 'boxed'">Eingerahmt</option>
+                                </select>
+                                <!-- Summenblock als Einheit verschieben (numerisch, mm) + Zeilenabstand.
+                                     Die drei Zeilen bleiben fest zusammen. 0 = Standardposition/-abstand. -->
+                                <div class="row g-1 mt-1 mb-1">
+                                    <div class="col-4"><label class="ild-prop-label">X-Versatz</label><input type="number" class="form-control form-control-sm" step="1" t-att-value="(sel.totals_offset_x ?? 0)" t-on-change="(ev) => this.sp('totals_offset_x', ev)" title="Horizontaler Versatz des Summenblocks (mm)"/></div>
+                                    <div class="col-4"><label class="ild-prop-label">Y-Versatz</label><input type="number" class="form-control form-control-sm" step="1" t-att-value="(sel.totals_offset_y ?? 0)" t-on-change="(ev) => this.sp('totals_offset_y', ev)" title="Vertikaler Versatz des Summenblocks (mm)"/></div>
+                                    <div class="col-4"><label class="ild-prop-label">Zeilenabst.</label><input type="number" class="form-control form-control-sm" step="0.5" min="0" t-att-value="(sel.totals_row_spacing ?? 0)" t-on-change="(ev) => this.sp('totals_row_spacing', ev)" title="Abstand zwischen den Summenzeilen (mm)"/></div>
+                                </div>
+                            </div>
+                        </t>
+                        <!-- Totals (eigenständiges Element) --><t t-if="sel.type === 'totals'">
+                            <p class="text-muted" style="font-size:11px;">Frei platzierbarer Summen-Block (Zwischensumme / Steuer / Gesamt). Optik wie im Standardbeleg, aber unabhängig von der Tabelle verschiebbar.</p>
+                            <div class="mt-1 pt-1">
+                                <label class="ild-prop-label fw-bold">Summen-Bereich</label>
+                                <div class="row g-1 mb-1">
+                                    <div class="col-5"><label class="ild-prop-label">Zwischensumme</label></div>
+                                    <div class="col-7"><input type="text" class="form-control form-control-sm" placeholder="Zwischensumme:" t-att-value="sel.totals_label_subtotal || 'Zwischensumme:'" t-on-change="(ev) => this.sp('totals_label_subtotal', ev)"/></div>
+                                </div>
+                                <div class="row g-1 mb-1">
+                                    <div class="col-5"><label class="ild-prop-label">Steuer</label></div>
+                                    <div class="col-7"><input type="text" class="form-control form-control-sm" placeholder="Steuer:" t-att-value="sel.totals_label_tax || 'Steuer:'" t-on-change="(ev) => this.sp('totals_label_tax', ev)"/></div>
+                                </div>
+                                <div class="row g-1 mb-1">
+                                    <div class="col-5"><label class="ild-prop-label">Gesamt</label></div>
+                                    <div class="col-7"><input type="text" class="form-control form-control-sm" placeholder="Gesamt:" t-att-value="sel.totals_label_total || 'Gesamt:'" t-on-change="(ev) => this.sp('totals_label_total', ev)"/></div>
+                                </div>
+                                <label class="ild-prop-label">Summen-Style</label>
+                                <select class="form-select form-select-sm" t-on-change="(ev) => this.sp('totals_style', ev)">
+                                    <option value="default" t-att-selected="!sel.totals_style || sel.totals_style === 'default'">Standard (rechtsbündig)</option>
+                                    <option value="bold" t-att-selected="sel.totals_style === 'bold'">Fett mit Linie</option>
+                                    <option value="large" t-att-selected="sel.totals_style === 'large'">Gross und prominent</option>
+                                    <option value="minimal" t-att-selected="sel.totals_style === 'minimal'">Minimal (nur Total fett)</option>
+                                    <option value="boxed" t-att-selected="sel.totals_style === 'boxed'">Eingerahmt</option>
+                                </select>
+                                <!-- Position über Position-Tab (pos_x/pos_y). Hier nur Zeilenabstand. -->
+                                <label class="ild-prop-label mt-1">Zeilenabstand (mm)</label>
+                                <input type="number" class="form-control form-control-sm" step="0.5" min="0" t-att-value="(sel.totals_row_spacing ?? 0)" t-on-change="(ev) => this.sp('totals_row_spacing', ev)" title="Abstand zwischen den Summenzeilen (mm)"/>
+                            </div>
+                        </t>
+                        <!-- Line --><t t-if="sel.type === 'line' or sel.type === 'vline'"><div class="row g-2 mb-2"><div class="col-4"><label class="ild-prop-label">Color</label><input type="color" class="form-control form-control-sm form-control-color" t-att-value="sel.line_color" t-on-change="(ev) => this.sp('line_color', ev)"/></div><div class="col-4"><label class="ild-prop-label">Width</label><input type="number" class="form-control form-control-sm" step="0.5" min="0.5" t-att-value="sel.line_width" t-on-change="(ev) => this.sp('line_width', ev)"/></div><div class="col-4"><label class="ild-prop-label">Style</label><select class="form-select form-select-sm" t-on-change="(ev) => this.sp('line_style', ev)"><option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option></select></div></div></t>
+                        <!-- Container --><t t-if="sel.type === 'container'"><label class="ild-prop-label">Layout</label><select class="form-select form-select-sm mb-2" t-on-change="(ev) => this.sp('container_layout', ev)"><option value="free">Free</option><option value="columns_2">2 Col (50/50)</option><option value="columns_3">3 Col</option><option value="columns_2_left">2 Col (66/33)</option><option value="columns_2_right">2 Col (33/66)</option><option value="stack">Stack</option></select><div class="row g-2 mb-2"><div class="col-6"><label class="ild-prop-label">Padding</label><input type="number" class="form-control form-control-sm" step="1" min="0" t-att-value="sel.container_padding" t-on-change="(ev) => this.sp('container_padding', ev)"/></div><div class="col-6"><label class="ild-prop-label">Radius</label><input type="number" class="form-control form-control-sm" step="0.5" min="0" t-att-value="sel.container_border_radius" t-on-change="(ev) => this.sp('container_border_radius', ev)"/></div></div><label class="ild-prop-label">Border</label><input type="text" class="form-control form-control-sm mb-2" placeholder="1pt solid #ccc" t-att-value="sel.container_border" t-on-change="(ev) => this.sp('container_border', ev)"/><label class="d-flex align-items-center gap-1" style="font-size:11px;"><input type="checkbox" t-att-checked="sel.container_shadow" t-on-change="(ev) => this.sp('container_shadow', ev)"/> Shadow</label></t>
+                        <!-- Barcode --><t t-if="sel.type === 'barcode' or sel.type === 'qrcode'"><label class="ild-prop-label">Type</label><select class="form-select form-select-sm mb-2" t-on-change="(ev) => this.sp('barcode_type', ev)"><option value="code128">Code 128</option><option value="ean13">EAN-13</option><option value="qr">QR</option></select><label class="ild-prop-label">Data Field</label><input type="text" class="form-control form-control-sm mb-2" placeholder="name" t-att-value="sel.barcode_field" t-on-change="(ev) => this.sp('barcode_field', ev)"/><label class="ild-prop-label">Static Value</label><input type="text" class="form-control form-control-sm" t-att-value="sel.barcode_static_value" t-on-change="(ev) => this.sp('barcode_static_value', ev)"/></t>
+                        <!-- Shape --><t t-if="sel.type === 'shape'">
+                            <!-- Fill -->
+                            <div class="row g-2 mb-2">
+                                <div class="col-7">
+                                    <label class="ild-prop-label">Füllfarbe</label>
+                                    <input type="color" class="form-control form-control-sm form-control-color" t-att-value="sel.shape_fill_color || '#ffffff'" t-on-change="(ev) => this.spShape('shape_fill_color', ev)"/>
+                                </div>
+                                <div class="col-5">
+                                    <label class="ild-prop-label">Deckkraft</label>
+                                    <input type="number" class="form-control form-control-sm" step="0.05" min="0" max="1" t-att-value="(sel.shape_opacity ?? 1)" t-on-change="(ev) => this.spShape('shape_opacity', ev)"/>
+                                </div>
+                            </div>
+                            <label class="d-flex align-items-center gap-1 mb-2" style="font-size:11px;">
+                                <input type="checkbox" t-att-checked="!sel.shape_fill_color" t-on-change="(ev) => this.spShape('shape_fill_color', {target:{type:'text', value: ev.target.checked ? '' : '#ffffff'}})"/> Transparent (keine Füllung)
+                            </label>
+                            <!-- Border -->
+                            <div class="row g-2 mb-2">
+                                <div class="col-4">
+                                    <label class="ild-prop-label">Rahmen</label>
+                                    <select class="form-select form-select-sm" t-on-change="(ev) => this.spShape('shape_border_style', ev)">
+                                        <option value="none" t-att-selected="(sel.shape_border_style||'none') === 'none'">Keiner</option>
+                                        <option value="solid" t-att-selected="sel.shape_border_style === 'solid'">Solid</option>
+                                        <option value="dashed" t-att-selected="sel.shape_border_style === 'dashed'">Dashed</option>
+                                        <option value="dotted" t-att-selected="sel.shape_border_style === 'dotted'">Dotted</option>
+                                    </select>
+                                </div>
+                                <div class="col-4">
+                                    <label class="ild-prop-label">Breite (px)</label>
+                                    <input type="number" class="form-control form-control-sm" step="0.5" min="0" t-att-value="(sel.shape_border_width ?? 1)" t-on-change="(ev) => this.spShape('shape_border_width', ev)"/>
+                                </div>
+                                <div class="col-4">
+                                    <label class="ild-prop-label">Farbe</label>
+                                    <input type="color" class="form-control form-control-sm form-control-color" t-att-value="sel.shape_border_color || '#000000'" t-on-change="(ev) => this.spShape('shape_border_color', ev)"/>
+                                </div>
+                            </div>
+                            <!-- Corner radius -->
+                            <label class="d-flex align-items-center gap-1 mb-1" style="font-size:11px;">
+                                <input type="checkbox" t-att-checked="(sel.radius_uniform ?? true)" t-on-change="(ev) => this.spShape('radius_uniform', ev)"/> Alle Ecken gleich
+                            </label>
+                            <t t-if="(sel.radius_uniform ?? true)">
+                                <label class="ild-prop-label">Eckenradius (px)</label>
+                                <input type="number" class="form-control form-control-sm mb-2" step="0.5" min="0" t-att-value="(sel.radius_tl ?? 0)" t-on-change="(ev) => this.spShape('radius_tl', ev)"/>
+                            </t>
+                            <t t-else="">
+                                <label class="ild-prop-label">Eckenradius pro Ecke (px)</label>
+                                <div class="row g-1 mb-1">
+                                    <div class="col-6"><label class="ild-prop-label">Oben-Links</label><input type="number" class="form-control form-control-sm" step="0.5" min="0" t-att-value="(sel.radius_tl ?? 0)" t-on-change="(ev) => this.spShape('radius_tl', ev)"/></div>
+                                    <div class="col-6"><label class="ild-prop-label">Oben-Rechts</label><input type="number" class="form-control form-control-sm" step="0.5" min="0" t-att-value="(sel.radius_tr ?? 0)" t-on-change="(ev) => this.spShape('radius_tr', ev)"/></div>
+                                </div>
+                                <div class="row g-1 mb-2">
+                                    <div class="col-6"><label class="ild-prop-label">Unten-Rechts</label><input type="number" class="form-control form-control-sm" step="0.5" min="0" t-att-value="(sel.radius_br ?? 0)" t-on-change="(ev) => this.spShape('radius_br', ev)"/></div>
+                                    <div class="col-6"><label class="ild-prop-label">Unten-Links</label><input type="number" class="form-control form-control-sm" step="0.5" min="0" t-att-value="(sel.radius_bl ?? 0)" t-on-change="(ev) => this.spShape('radius_bl', ev)"/></div>
+                                </div>
+                            </t>
+                        </t>
+
+                        <!-- Feature #8: Conditional Visibility (all types) -->
+                        <div class="mt-3 pt-2" style="border-top:1px solid #2a2a3e;">
+                            <div class="d-flex align-items-center mb-1">
+                                <label class="ild-prop-label fw-bold mb-0" style="color:#81c784;"><i class="fa fa-eye"/> Bedingte Sichtbarkeit</label>
+                                <button class="btn btn-sm ms-auto" style="font-size:10px; color:#81c784; padding:0 4px;" t-on-click="() => this.state.showConditionHelper = !this.state.showConditionHelper" title="Hilfe und Vorlagen"><i class="fa fa-question-circle"/> Hilfe</button>
+                            </div>
+                            <small class="d-block mb-2" style="font-size:9px; color:#888;">Element nur anzeigen wenn Bedingung erfuellt ist</small>
+
+                            <!-- Quick-Apply Presets (toggle) -->
+                            <t t-if="state.showConditionHelper">
+                                <div class="mb-2 p-2" style="background:#1a1a2e; border-radius:6px; border:1px solid #2a2a3e;">
+                                    <div style="font-size:10px; color:#aaa; margin-bottom:6px; font-weight:500;">Klicke um Bedingung zu setzen:</div>
+                                    <div class="d-flex flex-wrap gap-1 mb-2">
+                                        <button class="btn btn-sm" style="font-size:9px; background:#2a2a3e; color:#ccc; border:1px solid #3a3a4e;" t-on-click="() => this.applyConditionPreset('state', 'eq', 'draft')">Nur Entwurf</button>
+                                        <button class="btn btn-sm" style="font-size:9px; background:#2a2a3e; color:#ccc; border:1px solid #3a3a4e;" t-on-click="() => this.applyConditionPreset('state', 'eq', 'sale')">Nur Auftrag</button>
+                                        <button class="btn btn-sm" style="font-size:9px; background:#2a2a3e; color:#ccc; border:1px solid #3a3a4e;" t-on-click="() => this.applyConditionPreset('state', 'eq', 'posted')">Nur gebucht</button>
+                                        <button class="btn btn-sm" style="font-size:9px; background:#2a2a3e; color:#ccc; border:1px solid #3a3a4e;" t-on-click="() => this.applyConditionPreset('move_type', 'eq', 'out_invoice')">Nur Rechnung</button>
+                                        <button class="btn btn-sm" style="font-size:9px; background:#2a2a3e; color:#ccc; border:1px solid #3a3a4e;" t-on-click="() => this.applyConditionPreset('move_type', 'eq', 'out_refund')">Nur Gutschrift</button>
+                                        <button class="btn btn-sm" style="font-size:9px; background:#2a2a3e; color:#ccc; border:1px solid #3a3a4e;" t-on-click="() => this.applyConditionPreset('partner_id.vat', 'set', '')">Hat USt-ID</button>
+                                        <button class="btn btn-sm" style="font-size:9px; background:#2a2a3e; color:#ccc; border:1px solid #3a3a4e;" t-on-click="() => this.applyConditionPreset('partner_id.vat', 'unset', '')">Keine USt-ID</button>
+                                        <button class="btn btn-sm" style="font-size:9px; background:#2a2a3e; color:#ccc; border:1px solid #3a3a4e;" t-on-click="() => this.applyConditionPreset('partner_id.country_id.code', 'eq', 'DE')">Nur Deutschland</button>
+                                        <button class="btn btn-sm" style="font-size:9px; background:#2a2a3e; color:#ccc; border:1px solid #3a3a4e;" t-on-click="() => this.applyConditionPreset('partner_id.country_id.code', 'neq', 'DE')">Nur Ausland</button>
+                                        <button class="btn btn-sm" style="font-size:9px; background:#2a2a3e; color:#ccc; border:1px solid #3a3a4e;" t-on-click="() => this.applyConditionPreset('amount_total', 'gt', '1000')">Betrag &gt; 1000</button>
+                                    </div>
+                                    <div style="font-size:9px; color:#777; line-height:1.5;">
+                                        <strong style="color:#aaa;">So funktioniert es:</strong><br/>
+                                        1. Waehle ein Feld (oder klicke einen Button oben)<br/>
+                                        2. Waehle einen Operator (ist gleich, enthaelt, etc.)<br/>
+                                        3. Gib den Wert ein<br/>
+                                        → Element wird nur angezeigt wenn Bedingung zutrifft
+                                    </div>
+                                </div>
+                            </t>
+
+                            <label class="ild-prop-label">Feld</label>
+                            <div class="d-flex gap-1 mb-1">
+                                <input type="text" class="form-control form-control-sm" style="flex:1;" placeholder="z.B. state, move_type, partner_id.vat" t-att-value="sel.condition_field || ''" t-on-change="(ev) => this.sp('condition_field', ev)"/>
+                                <button class="btn btn-sm btn-outline-secondary" style="flex:none;" t-on-click="() => this.openFieldBrowser('condition')" title="Feld suchen"><i class="fa fa-search"/></button>
+                            </div>
+                            <label class="ild-prop-label">Operator</label>
+                            <select class="form-select form-select-sm mb-1" t-on-change="(ev) => this.sp('condition_operator', ev)">
+                                <option value="set" t-att-selected="(sel.condition_operator||'set') === 'set'">ist gesetzt (nicht leer)</option>
+                                <option value="unset" t-att-selected="sel.condition_operator === 'unset'">ist leer</option>
+                                <option value="eq" t-att-selected="sel.condition_operator === 'eq'">ist gleich (=)</option>
+                                <option value="neq" t-att-selected="sel.condition_operator === 'neq'">ist nicht gleich (!=)</option>
+                                <option value="contains" t-att-selected="sel.condition_operator === 'contains'">enthaelt</option>
+                                <option value="gt" t-att-selected="sel.condition_operator === 'gt'">groesser als (&gt;)</option>
+                                <option value="lt" t-att-selected="sel.condition_operator === 'lt'">kleiner als (&lt;)</option>
+                                <option value="in" t-att-selected="sel.condition_operator === 'in'">ist eines von (kommagetrennt)</option>
+                            </select>
+                            <t t-if="sel.condition_operator and sel.condition_operator !== 'set' and sel.condition_operator !== 'unset'">
+                                <label class="ild-prop-label">Wert</label>
+                                <input type="text" class="form-control form-control-sm mb-1" placeholder="z.B. sale, out_invoice, DE" t-att-value="sel.condition_value || ''" t-on-change="(ev) => this.sp('condition_value', ev)"/>
+                            </t>
+                            <label class="ild-prop-label mt-2">Anzeigen auf Seite</label>
+                            <select class="form-select form-select-sm mb-1" t-on-change="(ev) => this.sp('show_on_page', ev)">
+                                <option value="all" t-att-selected="(sel.show_on_page||'all') === 'all'">Alle Seiten (fixed, wiederholt sich)</option>
+                                <option value="first" t-att-selected="sel.show_on_page === 'first'">Nur erste Seite</option>
+                                <option value="last" t-att-selected="sel.show_on_page === 'last'">Nur letzte Seite</option>
+                                <option value="middle" t-att-selected="sel.show_on_page === 'middle'">Nur Folgeseiten (ab Seite 2)</option>
+                            </select>
+                            <t t-if="sel.condition_field">
+                                <div class="d-flex align-items-center mt-1 p-1" style="background:#1a2e1a; border-radius:4px;">
+                                    <span style="font-size:9px; color:#81c784;"><i class="fa fa-check-circle"/> Aktiv:</span>
+                                    <span class="ms-1" style="font-size:9px; color:#ccc;" t-esc="(sel.condition_field || '') + ' ' + (sel.condition_operator || '') + ' ' + (sel.condition_value || '')"/>
+                                    <button class="btn btn-sm ms-auto" style="font-size:9px; color:#e57373; padding:0 4px;" t-on-click="() => this.clearCondition()"><i class="fa fa-times"/></button>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+
+                    <!-- FIELD BROWSER MODAL -->
+                    <t t-if="state.showFieldBrowser">
+                        <div class="ild-field-browser-overlay" t-on-click="closeFieldBrowser">
+                            <div class="ild-field-browser" t-on-click.stop="">
+                                <div class="d-flex align-items-center px-3 py-2" style="background:#111118; border-bottom:1px solid #2a2a3e;">
+                                    <strong style="font-size:12px;">
+                                        <t t-if="state.fieldBrowserTarget === 'condition'">Condition Field</t>
+                                        <t t-elif="state.fieldBrowserTarget === 'column'">Column Field (Line Model)</t>
+                                        <t t-else="">Select Field</t>
+                                    </strong>
+                                    <div class="flex-grow-1"/>
+                                    <select class="form-select form-select-sm" style="width:180px;" t-on-change="(ev) => this.browseModel(ev.target.value)">
+                                        <t t-foreach="state.fieldBrowserModels || []" t-as="m" t-key="m.model">
+                                            <option t-att-value="m.model" t-att-selected="m.model === state.fieldBrowserModel"><t t-esc="m.label"/></option>
+                                        </t>
+                                    </select>
+                                    <button class="btn btn-sm btn-light ms-2" t-on-click="closeFieldBrowser"><i class="fa fa-times"/></button>
+                                </div>
+                                <div class="px-3 py-2">
+                                    <input type="text" class="form-control form-control-sm mb-2" placeholder="Search fields..." t-att-value="state.fieldBrowserSearch || ''" t-on-input="(ev) => this.state.fieldBrowserSearch = ev.target.value"/>
+                                </div>
+                                <div style="max-height:350px; overflow-y:auto; padding:0 12px 12px;">
+                                    <t t-foreach="Object.entries(state.fieldBrowserFields || {})" t-as="group" t-key="group[0]">
+                                        <div class="mb-2">
+                                            <div style="font-size:10px; color:#999; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;"><t t-esc="group[1].label"/></div>
+                                            <t t-foreach="group[1].fields || []" t-as="f" t-key="f.path">
+                                                <t t-if="!state.fieldBrowserSearch || f.label.toLowerCase().includes((state.fieldBrowserSearch||'').toLowerCase()) || f.path.toLowerCase().includes((state.fieldBrowserSearch||'').toLowerCase())">
+                                                    <div class="ild-field-browser-item" t-on-click="() => this.selectBrowserField(f.path)" style="padding:3px 6px; cursor:pointer; border-radius:3px; font-size:11px; display:flex; justify-content:space-between;">
+                                                        <span><t t-esc="f.label"/></span>
+                                                        <span style="color:#666; font-size:10px;"><t t-esc="f.path"/></span>
+                                                    </div>
+                                                </t>
+                                            </t>
+                                        </div>
+                                    </t>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </t>
+        </div>
+    </div>
+    </t>
+</div>
+</t>
+</templates>
